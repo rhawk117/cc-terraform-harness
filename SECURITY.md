@@ -1,53 +1,70 @@
 # Security Policy
 
-This repository distributes a Claude Code plugin. Its components may influence agent behavior, invoke local commands, interact with files, or start external tools. Review plugin updates and executable components before enabling them in a sensitive environment.
+This repository distributes a Claude Code plugin. Its components can influence agent behavior, run local commands, read and write files, and start external tools. Review plugin updates and executable components before you enable them in a sensitive environment.
 
-## Supported Versions
+## Supported versions
 
-Security fixes target the latest published release and the `main` branch. Older releases are not guaranteed to receive backports. If you discover an issue in an older release, report it with the affected version so maintainers can assess its impact.
+Security fixes go to the latest published release and the `main` branch. Older releases may not get backports. If you find an issue in an older release, report it with the affected version so maintainers can assess its impact.
 
-## Reporting a Vulnerability
+| Version | Receives security fixes |
+| --- | --- |
+| `main` | Yes |
+| Latest published release | Yes |
+| Older releases | Not guaranteed |
 
-**Report security vulnerabilities privately. Do not include exploit details, credentials, or sensitive files in a public issue or pull request.**
+## Reporting a vulnerability
+
+> [!IMPORTANT]
+> Report vulnerabilities privately. Do not put exploit details, credentials or sensitive files in a public issue or pull request.
 
 1. Open the repository's **Security** tab and select **Report a vulnerability**, if private vulnerability reporting is enabled.
-2. Describe the affected release or commit, impacted plugin component, prerequisites, reproducible steps, and potential impact. Include a minimal proof of concept when appropriate, with all secrets removed.
-3. If private reporting is unavailable, open a public issue **requesting a private security contact channel only**. Do not disclose vulnerability details in that issue.
+2. Describe the affected release or commit, the plugin component, any prerequisites, the steps to reproduce and the potential impact. Add a minimal proof of concept when it helps, with all secrets removed.
+3. If private reporting is unavailable, open a public issue that asks for a private security contact channel and nothing else. Leave the vulnerability details out of it.
 
-Maintainers will assess reports, coordinate remediation, and determine whether a GitHub Security Advisory or release notice is appropriate. Response and remediation timing depend on severity, reproducibility, and maintainer availability; no fixed service-level agreement is implied.
+Maintainers will assess reports, coordinate a fix, and decide whether a GitHub Security Advisory or release notice is appropriate. Timing depends on severity, reproducibility and maintainer availability. No fixed service-level agreement is implied.
 
-## Security-Relevant Components
+## What to report
 
-Reports are especially useful for vulnerabilities involving:
+Reports are most useful when they involve one of these areas.
 
-- **Hooks and executables:** unsafe subprocess execution, command injection, unexpected side effects, or access outside intended paths.
-- **Skills, commands, agents, and workflows:** instructions that induce unsafe tool use, disclose sensitive data, or bypass expected user approval.
-- **MCP and LSP integrations:** untrusted server execution, excessive privileges, insecure communication, or improper handling of credentials.
-- **Plugin manifests and configuration:** unsafe defaults, path traversal, unintended component loading, or insecure environment-variable handling.
-- **Dependencies and releases:** compromised packages, vulnerable transitive dependencies, artifact tampering, or weaknesses in CI/release automation.
+| Area | Examples |
+| --- | --- |
+| Hooks and executables | Unsafe subprocess execution, command injection, unexpected side effects, access outside intended paths |
+| Skills, commands, agents and workflows | Instructions that lead to unsafe tool use, disclose sensitive data or bypass expected user approval |
+| MCP and LSP integrations | Running untrusted servers, excessive privileges, insecure communication, mishandled credentials |
+| Plugin manifests and configuration | Unsafe defaults, path traversal, unintended component loading, insecure handling of environment variables |
+| Dependencies and releases | Compromised packages, vulnerable transitive dependencies, tampered artifacts, weaknesses in CI and release automation |
 
-## Automated Security Checks
+## Automated security checks
 
-The repository uses **PySentry** to audit Python dependency metadata and resolved dependencies. Scanner policy, including failure thresholds and advisory sources, is configured in `pyproject.toml`; the scanner is installed through uv's `security` dependency group.
+The repository uses PySentry to audit Python dependency metadata and resolved dependencies. Scanner policy, including failure thresholds and advisory sources, lives in `pyproject.toml`. uv installs the scanner through the `security` dependency group.
 
-- **CI:** The reusable `.github/workflows/supply-chain.yml` workflow checks dependencies. Successful audit results may be reused using a cache keyed to dependency metadata and an ISO-week window.
-- **Scheduled audit:** `.github/workflows/weekly-security.yml` runs weekly and forces a fresh scan, independently of dependency changes. It can also be started manually.
-- **Findings:** SARIF reports are submitted to GitHub Code Scanning where repository permissions and features allow it. Scheduled runs also retain a report artifact when one is produced.
-- **Failure tracking:** A failing scheduled audit creates or updates a GitHub issue containing an audit summary and available findings. A later successful audit closes the outstanding tracking issue.
+| Check | Workflow | Behavior |
+| --- | --- | --- |
+| Dependency audit in CI | `.github/workflows/supply-chain-check.yml` | A reusable workflow that checks dependencies. A successful result can be reused from a cache keyed to dependency metadata and an ISO-week window. |
+| Scheduled audit | `.github/workflows/weekly-security-scan.yml` | Runs weekly and forces a fresh scan whether or not dependencies changed. It can also be started manually. |
 
-An audit can fail for reasons other than a known vulnerability, including scanner or infrastructure errors. A missing SARIF report does not mean that the repository passed its security checks.
+What happens with the results:
+
+- SARIF reports go to GitHub Code Scanning where repository permissions and features allow it.
+- Scheduled runs also keep a report artifact when one is produced.
+- A failing scheduled audit creates or updates a GitHub issue with an audit summary and any available findings. A later successful audit closes the open tracking issue.
+
+> [!NOTE]
+> An audit can fail for reasons other than a known vulnerability, such as a scanner or infrastructure error. A missing SARIF report does not mean the repository passed its security checks.
 
 ### Limitations
 
-These checks identify issues covered by their advisory sources and configured policies. They do **not** establish that the plugin, its dependencies, or its releases are free of malicious behavior. In particular, dependency auditing does not comprehensively detect prompt injection, unsafe agent instructions, malicious hooks, compromised MCP servers, secret exfiltration, or previously undisclosed vulnerabilities.
+These checks find issues covered by their advisory sources and configured policies. They do not show that the plugin, its dependencies or its releases are free of malicious behavior. Dependency auditing in particular does not reliably detect prompt injection, unsafe agent instructions, malicious hooks, compromised MCP servers, secret exfiltration or undisclosed vulnerabilities.
 
-Automated tracking issues are **not a private disclosure channel**. If a finding involves an unreported exploitable weakness or sensitive data, disclose it privately rather than posting additional details to a public issue.
+> [!WARNING]
+> Automated tracking issues are public, so they are not a disclosure channel. If a finding involves an unreported exploitable weakness or sensitive data, report it privately and keep the extra details out of the issue.
 
-## Guidance for Users
+## Guidance for users
 
-- Install updates from trusted repository releases and review changes to hooks, scripts, executables, and external-tool configuration.
-- Run the plugin with the least privileges necessary. Avoid giving agent processes broad access to credentials, production infrastructure, or unrelated files.
-- Review requests to execute commands or connect to MCP/LSP servers, especially when they originate from untrusted content.
-- Keep dependencies and the plugin current, and investigate security advisories relevant to the installed version.
+- Install updates from trusted repository releases, and review changes to hooks, scripts, executables and external-tool configuration.
+- Run the plugin with the fewest privileges it needs. Don't give agent processes broad access to credentials, production infrastructure or unrelated files.
+- Review requests to run commands or connect to MCP and LSP servers, especially when they come from untrusted content.
+- Keep dependencies and the plugin current, and look into security advisories for the version you have installed.
 
-Security tooling reduces exposure; it does not replace review of executable plugin behavior and the permissions granted to it.
+Security tooling reduces exposure. It does not replace reviewing what executable plugin behavior does and which permissions it holds.
