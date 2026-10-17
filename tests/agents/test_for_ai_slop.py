@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
-class BuiltinUse:
+class BannedBuiltinUse:
     path: Path
     line: int
     name: str
@@ -28,10 +28,10 @@ class ParsedSource:
         names = (node for node in ast.walk(self.tree) if isinstance(node, ast.Name))
         return (name for name in names if name.id in banned)
 
-    def describe_use(self, node: ast.Name) -> BuiltinUse:
-        return BuiltinUse(path=self.path, line=node.lineno, name=node.id)
+    def describe_use(self, node: ast.Name) -> BannedBuiltinUse:
+        return BannedBuiltinUse(path=self.path, line=node.lineno, name=node.id)
 
-    def find_banned_uses(self, banned: frozenset[str]) -> Iterator[BuiltinUse]:
+    def find_banned_uses(self, banned: frozenset[str]) -> Iterator[BannedBuiltinUse]:
         return map(self.describe_use, self.select_banned_names(banned))
 
 

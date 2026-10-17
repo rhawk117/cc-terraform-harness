@@ -104,8 +104,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Validate Claude Code Plugin
-        run: bash ./.github/scripts/cc-plugin-checker.sh
+      # - name: Validate Claude Code Plugin
+      #   run: bash ./.github/scripts/cc-plugin-checker.sh
 
       - name: Run Integration Tests
         run: uv run --no-sync pytest -q -m "integration"

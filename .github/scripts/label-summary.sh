@@ -14,6 +14,7 @@ format_labels() {
 
     [[ -n "$label" ]] || continue
 
+    # shellcheck disable=SC2016
     printf -- '- `%s`\n' "${label//\`/\\\`}"
     found=true
   done
