@@ -1,133 +1,103 @@
-name: release
 
+name: Create Release
 on:
   workflow_dispatch:
     inputs:
       version-bump:
+        description: Semantic version bump or recover an existing release
         type: choice
-        options: [major, minor, patch]
-        required: false
-        description: |
-          The optional semver version bump for the release. Omit to recover
-          a release for the current version.
-          v(major).(minor).(patch)
+        options: [recover, patch, minor, major]
+        default: recover
+        required: true
 
 permissions: {}
 
 concurrency:
-  group: release
+  group: release-${{ github.repository }}
   cancel-in-progress: false
 
+defaults:
+  run:
+    shell: bash
+
+env:
+  PACKAGE_NAME: tf-harness-plugin
+  UV_VERSION: "0.13.1"
+  VERSION_BUMP: ${{ inputs.version-bump }}
+  REPOSITORY_IS_FORK: ${{ github.event.repository.fork }}
+
 jobs:
-  run-ci-pipeline:
+  release-guard:
+    name: Validate Release Context
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Verify Repository and Branch
+        run: |
+          if [[ "$REPOSITORY_IS_FORK" != false ]]; then
+            echo "::error::Releases are disabled in forks."
+            exit 1
+          fi
+
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "::error::Releases must originate from main."
+            exit 1
+          fi
+
+  continuous-integration:
     name: Run CI Pipeline
+    needs: [release-guard]
     uses: ./.github/workflows/ci.yml
     permissions:
       contents: read
 
   prepare-release:
     name: Prepare Release
-    needs: run-ci-pipeline
+    needs: [continuous-integration]
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: write
-    env:
-      VERSION_BUMP: ${{ inputs.version-bump }}
     outputs:
-      version: ${{ steps.bump.outputs.version || steps.recover.outputs.version }}
-      tag: ${{ steps.bump.outputs.tag || steps.recover.outputs.tag }}
+      version: ${{ steps.prepare.outputs.version }}
+      tag: ${{ steps.prepare.outputs.tag }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Bootstrap Runner
         uses: ./.github/actions/bootstrap
 
-      - name: Validate Current Release
-        id: current
-        shell: bash
-        run: |
-          current_version="$(uv version --package mightymodels-plugin --short)"
-          current_tag="v${current_version}"
-
-          git rev-parse "${current_tag}" >/dev/null 2>&1 || {
-            echo "::error::Previous release tag '${current_tag}' does not exist."
-            exit 1
-          }
-
-          echo "version=${current_version}" >> "${GITHUB_OUTPUT}"
-          echo "tag=${current_tag}" >> "${GITHUB_OUTPUT}"
-
-      - name: Bump Release
-        id: bump
-        if: ${{ inputs.version-bump != '' }}
-        shell: bash
-        run: |
-          uv version --package mightymodels-plugin --bump "${VERSION_BUMP}" --no-sync
-          version="$(uv version --package mightymodels-plugin --short)"
-          tag="v${version}"
-
-          manifest=.claude-plugin/plugin.json
-          jq --arg version "${version}" '.version = $version' "${manifest}" > "${manifest}.tmp"
-          mv "${manifest}.tmp" "${manifest}"
-
-          uv run pytest --no-cov -q tests/test_release_metadata.py
-
-          {
-            echo "version=${version}"
-            echo "tag=${tag}"
-          } >> "${GITHUB_OUTPUT}"
-
-      - name: Use Current Release
-        id: recover
-        if: ${{ inputs.version-bump == '' }}
-        env:
-          CURRENT_VERSION: ${{ steps.current.outputs.version }}
-          CURRENT_TAG: ${{ steps.current.outputs.tag }}
-        shell: bash
-        run: |
-          echo "version=${CURRENT_VERSION}" >> "${GITHUB_OUTPUT}"
-          echo "tag=${CURRENT_TAG}" >> "${GITHUB_OUTPUT}"
-
-      - name: Record Version Bump
-        if: ${{ inputs.version-bump != '' }}
-        env:
-          RELEASE_TAG: ${{ steps.bump.outputs.tag }}
-        shell: bash
-        run: |
-          echo "::group::Recording Version Bump"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml uv.lock .claude-plugin/plugin.json
-          git commit -m "release: ${RELEASE_TAG}"
-          git tag "${RELEASE_TAG}"
-          git push origin HEAD
-          git push origin "${RELEASE_TAG}"
-          echo "::endgroup::"
+      - name: Prepare Release
+        id: prepare
+        run: bash ./.github/scripts/release.sh
 
   create-release:
+    name: Publish GitHub Release
     needs: [prepare-release]
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: write
     env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
       RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
     steps:
-      - name: Create GitHub Release
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            const { RELEASE_TAG } = process.env;
-            const { owner, repo } = context.repo;
-            const { data: release } = await github.rest.repos.createRelease({
-              owner,
-              repo,
-              tag_name: RELEASE_TAG,
-              name: RELEASE_TAG,
-              generate_release_notes: true,
-            });
+      - name: Publish GitHub Release
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::notice::Release already exists: $RELEASE_TAG"
+            exit 0
+          fi
 
-            core.notice(`Created release ${release.html_url}`);
+          gh release create "$RELEASE_TAG" \
+            --title "$RELEASE_TAG" \
+            --generate-notes \
+            --verify-tag
+
+          echo "::notice::Published GitHub Release: $RELEASE_TAG"

@@ -180,7 +180,6 @@ jobs:
             }
 
             const body = lines.join('\n');
-
             await core.summary.addRaw(body, true).write();
 
             if (!succeeded) {

@@ -10,12 +10,14 @@ import os
 import re
 import sys
 from collections import Counter
-from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal, Protocol, Self, get_args, runtime_checkable
+from typing import TYPE_CHECKING, Literal, Protocol, Self, get_args, runtime_checkable
 
 import msgspec
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator, Sequence
 
 type HookCommand = Literal['format', 'diagnose', 'suppressions']
 
@@ -33,7 +35,7 @@ class HookInput(msgspec.Struct, frozen=True, kw_only=True):
     cwd: str = ''
 
 
-class HookOutput(msgspec.Struct, frozen=True, kw_only=True, rename="camel"): ...
+class HookOutput(msgspec.Struct, frozen=True, kw_only=True, rename='camel'): ...
 
 
 class ContextOutput(HookOutput, frozen=True, kw_only=True):
@@ -298,7 +300,7 @@ def parse_command() -> HookCommand:
 async def main() -> int:
     command = parse_command()
     hook_input = msgspec.json.decode(sys.stdin.read(), type=HookInput)
-    cwd = os.getenv("CLAUDE_PROJECT_DIR", hook_input.cwd)
+    cwd = os.getenv('CLAUDE_PROJECT_DIR', hook_input.cwd)
 
     project_dir = Path(cwd)
     router = create_hook_router(project_dir)

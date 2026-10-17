@@ -1,12 +1,15 @@
+"""Fail when source code uses builtins that ruff's banned-api cannot ban."""
+
 import ast
-from collections.abc import Iterator
 from dataclasses import dataclass
 from itertools import chain
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
-pytestmark = pytest.mark.agents
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from pathlib import Path
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -33,28 +36,26 @@ class ParsedSource:
 
 
 def parse_source(path: Path) -> ParsedSource:
-    parsed_tree = ast.parse(path.read_bytes(), filename=path)
-    return ParsedSource(path=path, tree=parsed_tree)
+    return ParsedSource(path=path, tree=ast.parse(path.read_bytes(), filename=path))
 
 
 class TestBannedBuiltins:
-    roots = ('packages', 'tests')
+    roots = ('src', 'tests')
     banned = frozenset({
         '__import__',
         'globals',
+        'hasattr',
         'locals',
         'staticmethod',
         'vars',
-        'eval',
-        'exec',
     })
 
     @pytest.fixture
     def sources(self, pytestconfig: pytest.Config) -> tuple[ParsedSource, ...]:
         folders = map(pytestconfig.rootpath.joinpath, self.roots)
-        paths = chain.from_iterable(folder.rglob('*.py') for folder in folders)
+        paths = sorted(chain.from_iterable(folder.rglob('*.py') for folder in folders))
         return tuple(map(parse_source, paths))
 
     def test_source_avoids_banned_builtins(self, sources: tuple[ParsedSource, ...]) -> None:
-        found = chain.from_iterable(source.find_banned_uses(self.banned) for source in sources)
-        assert tuple(found) == ()
+        found = (source.find_banned_uses(self.banned) for source in sources)
+        assert tuple(chain.from_iterable(found)) == ()

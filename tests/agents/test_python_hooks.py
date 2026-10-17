@@ -1,12 +1,15 @@
 import asyncio
-from collections.abc import Sequence
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import msgspec
 import pytest
-from _pytest.mark import ParameterSet
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
+
+    from _pytest.mark import ParameterSet
 
 type HookCommand = Literal['format', 'diagnose', 'suppressions']
 type ToolName = Literal['Write', 'Edit', 'Read']

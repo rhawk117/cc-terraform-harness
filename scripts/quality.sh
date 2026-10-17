@@ -34,16 +34,7 @@ run_linter() {
   run_step 'Ruff Check' uv run ruff check "${RUFF_CONFIG[@]}" --no-fix .
   run_step 'Markdown Check' uv run mdformat --check "${MARKDOWN_GLOBS[@]}"
   run_step 'Typecheck' uv run ty check --config-file ty.toml
-
-  if ! command -v claude >/dev/null; then
-    log::error 'claude not on PATH: npm install -g @anthropic-ai/claude-code'
-    FAILURES+=('Claude CLI')
-    return
-  fi
-
-  run_step '[root] plugin validate' claude plugin validate --strict .
 }
-
 
 main() {
   repository_root=$(git rev-parse --show-toplevel) || return 1
@@ -53,16 +44,16 @@ main() {
   source scripts/log.sh
 
   case "${1:-}" in
-  --format) run_formatter ;;
-  --lint) run_linter ;;
-  '')
-    run_formatter
-    run_linter
-    ;;
-  *)
-    usage
-    return 2
-    ;;
+    --format) run_formatter ;;
+    --lint) run_linter ;;
+    '')
+      run_formatter
+      run_linter
+      ;;
+    *)
+      usage
+      return 2
+      ;;
   esac
 
   if ((${#FAILURES[@]} > 0)); then

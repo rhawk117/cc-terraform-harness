@@ -2,7 +2,6 @@ line-length = 100
 indent-width = 4
 force-exclude = true
 show-fixes = true
-fix = true
 
 [lint]
 preview = true
@@ -65,6 +64,7 @@ ignore = [
     "E117", # conflicts with the formatter, which owns indentation
     "W191", # conflicts with the formatter, which owns indentation
     "T201", # every print the rule reports is in the vibe-code plugin, whose CLI writes to stdout
+    "any-type"
 ]
 
 
@@ -105,15 +105,11 @@ parametrize-values-row-type = "tuple"
 
 [lint.flake8-type-checking]
 strict = true
-runtime-evaluated-base-classes = [
-    "pydantic.BaseModel",
-    "msgspec.Struct",
-
-]
+runtime-evaluated-base-classes = ["pydantic.BaseModel", "msgspec.Struct"]
 
 # pro tip
 [lint.flake8-tidy-imports.banned-api]
-"__future__.annotations".msg = "Python 3.14 evaluates annotations lazily; this import changes nothing but adds noise."
+"__future__.annotations".msg = "Python 3.14 already evaluates annotations lazily"
 "functools.partial".msg = "Use a class with a verb method, or pass a bound method."
 "functools.cached_property".msg = "Fails on slotted dataclasses and msgspec Structs; use a plain property."
 "asyncio.gather".msg = "Use asyncio.TaskGroup."

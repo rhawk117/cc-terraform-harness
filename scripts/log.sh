@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-declare -A _LOG_PREFIX=(
+declare -gA _LOG_PREFIX=(
   [info]=$'\033[0;34m  info\033[0m  '
   [success]=$'\033[0;32m    ok\033[0m  '
   [warn]=$'\033[1;33m  warn\033[0m  '

@@ -1,14 +1,20 @@
+"""
+Plugin Level & Repository Tests, not for application tests
+"""
+
 import functools
 import json
-from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from operator import attrgetter
-from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import pytest
 import yaml
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator, Mapping
+    from pathlib import Path
 
 
 def read_json_file(path: Path) -> dict[str, Any]:
@@ -33,8 +39,8 @@ def read_markdown_frontmatter(
         msg = f'Invalid or oversized frontmatter: {path}'
         raise ValueError(msg)
 
-    contents = yaml.safe_load(content[trim_offset:end]) or {}
-    return MappingProxyType(contents)
+    contents = yaml.safe_load(content[trim_offset:end])
+    return MappingProxyType(contents or {})
 
 
 @dataclass(slots=True, frozen=True)

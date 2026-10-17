@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPTS_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPOSITORY_ROOT="$(cd "${SCRIPTS_DIRECTORY}/.." && pwd)"
+readonly LOGGING_UTILS="./scripts/log.sh"
+
+setup_environment() {
+  local repository_root
+  repository_root=$(git rev-parse --show-toplevel)
+  cd "$repository_root"
+
+  # shellcheck disable=SC1090
+  source "$LOGGING_UTILS"
+}
 
 main() {
-  cd "${REPOSITORY_ROOT}"
-  # shellcheck disable=SC1091 source=scripts/log.sh
-  source "${SCRIPTS_DIRECTORY}/log.sh"
+  setup_environment
 
   log::step "installing pre-commit hook"
   uv run pre-commit install --install-hooks
