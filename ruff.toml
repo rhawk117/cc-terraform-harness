@@ -59,12 +59,13 @@ extend-select = [
     "pytest-fixture-autouse",
 ]
 ignore = [
-    "E111", # conflicts with the formatter, which owns indentation
-    "E114", # conflicts with the formatter, which owns indentation
-    "E117", # conflicts with the formatter, which owns indentation
-    "W191", # conflicts with the formatter, which owns indentation
-    "T201", # every print the rule reports is in the vibe-code plugin, whose CLI writes to stdout
-    "any-type"
+    "E111",
+    "E114",
+    "E117",
+    "W191",
+    "T201",
+    "any-type",
+    "shebang-missing-executable-file",
 ]
 
 
