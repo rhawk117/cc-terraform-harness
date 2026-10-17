@@ -1,5 +1,9 @@
-default_install_hook_types: [pre-commit]
 default_stages: [pre-commit]
+default_install_hook_types:
+  - pre-commit
+  - post-checkout
+  - post-merge
+  - post-rewrite
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -30,30 +34,25 @@ repos:
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.13.1
     hooks:
+      - id: uv-sync
+        args: ["--locked", "--all-packages"]
+
       - id: uv-lock
         files: ^(uv\.lock|pyproject\.toml|uv\.toml|packages/[^/]+/pyproject\.toml)$
 
+
   - repo: local
     hooks:
-      - id: ruff-format
-        name: ruff format
-        entry: uv run ruff format --config ruff.toml --force-exclude
+      - id: format
+        name: Formatter
+        entry: bash ./scripts/format.sh
         language: system
-        types: [python]
         pass_filenames: true
         stages: [pre-commit]
 
-      - id: mdformat
-        name: mdformat
-        entry: uv run mdformat
-        language: system
-        types: [markdown]
-        pass_filenames: true
-        stages: [pre-commit]
-
-      - id: quality
-        name: quality
-        entry: scripts/quality.sh --lint
+      - id: lint
+        name: Linter
+        entry: bash ./scripts/lint.sh
         language: system
         pass_filenames: false
         always_run: true

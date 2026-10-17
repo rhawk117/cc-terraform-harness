@@ -23,10 +23,10 @@ sync: ## Sync all workspace packages and dependency groups
 	$(UV) sync --all-packages --all-groups
 
 format: ## Run the quality script's formatters
-	./scripts/quality.sh --format
+	bash ./scripts/format.sh
 
 lint: ## Run the quality script's linters
-	./scripts/quality.sh --lint
+	bash ./scripts/lint.sh
 
 test: ## Run the quality script's tests
 	./scripts/quality.sh --test

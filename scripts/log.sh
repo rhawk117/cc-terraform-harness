@@ -14,7 +14,7 @@ _LOG_CI=false
 if [[ ${CI:-false} == true ]]; then
   _LOG_CI=true
   _LOG_PREFIX=(
-    [info]='::info::'
+    [info]='::notice::'
     [success]='::notice::'
     [warn]='::warning::'
     [error]='::error::'
