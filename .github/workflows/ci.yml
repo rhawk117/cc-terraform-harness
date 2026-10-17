@@ -15,10 +15,6 @@ defaults:
   run:
     shell: bash
 
-env:
-  NODE_VERSION: "24"
-  UV_VERSION: "0.13.1"
-
 jobs:
   labeler:
     name: 📎 Label Pull Request
@@ -51,6 +47,14 @@ jobs:
           NEW_LABELS: ${{ steps.apply-labels.outputs.new-labels }}
           ALL_LABELS: ${{ steps.apply-labels.outputs.all-labels }}
 
+  security-scanner:
+    name: Supply Chain Integrity
+    uses: ./.github/workflows/supply-chain-check.yml
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+
   quality-checks:
     name: Quality Checks (Pre-Commit)
     runs-on: ubuntu-24.04
@@ -66,7 +70,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
-          version: ${{ env.UV_VERSION }}
+          version: ${{ vars.UV_VERSION }}
           cache-dependency-glob: uv.lock
 
       - name: Synchronize Dependencies

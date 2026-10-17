@@ -1,0 +1,83 @@
+name: Supply Chain Security
+
+on:
+  workflow_call:
+    inputs:
+      force-scan:
+        description: Bypass cached security audit results
+        type: boolean
+        default: false
+
+permissions: {}
+defaults:
+  run:
+    shell: bash
+
+env:
+  SARIF_PATH: pysentry-results.sarif
+  IS_REPO_PR: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+  IS_NOT_FORK: ${{ github.event.repository.fork != true }}
+  UV_MALWARE_CHECK: 1
+
+jobs:
+  pysentry:
+    name: Python Supply Chain Audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Resolve Audit Period
+        id: period
+        run: |
+          echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Previous Audit
+        id: cache
+        if: ${{ !inputs.force-scan }}
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        with:
+          path: ${{ env.SARIF_PATH }}
+          key: pysentry-v1-${{ runner.os }}-${{ steps.period.outputs.week }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
+
+      - name: Install uv
+        if: ${{ inputs.force-scan || steps.cache.outputs.cache-hit != 'true' }}
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: ${{ vars.UV_VERSION }}
+          cache-dependency-glob: uv.lock
+
+      - name: Validate Lockfile
+        if: ${{ inputs.force-scan || steps.cache.outputs.cache-hit != 'true' }}
+        run: uv lock --check
+
+      - name: Audit Dependencies
+        id: audit
+        if: ${{ inputs.force-scan || steps.cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        run: |
+          uv run --locked --only-group security pysentry-rs --output "$SARIF_PATH"
+
+      - name: Preserve Weekly Audit Report
+        if: ${{ inputs.force-scan && !cancelled() && hashFiles('pysentry-results.sarif') != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pysentry-weekly
+          path: ${{ env.SARIF_PATH }}
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload Security Findings
+        if: ${{ !cancelled() && hashFiles('pysentry-results.sarif') != '' && env.IS_NOT_FORK && env.IS_REPO_PR }}
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: ${{ env.SARIF_PATH }}
+          category: pysentry

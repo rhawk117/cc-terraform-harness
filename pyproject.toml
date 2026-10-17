@@ -33,6 +33,7 @@ test = [
     "pytest-xdist>=3.8.0",
 ]
 dev = [{ include-group = "check" }, { include-group = "test" }]
+security = ["pysentry-rs>=0.5.0"]
 
 
 [tool.uv]
@@ -54,3 +55,17 @@ show_missing = true
 skip_covered = true
 skip_empty = true
 precision = 1
+
+[tool.pysentry]
+version = 1
+
+[tool.pysentry.defaults]
+format = "sarif"
+fail_on = "high"
+scope = "all"
+
+[tool.pysentry.sources]
+enabled = ["pypa", "pypi", "osv"]
+
+[tool.pysentry.maintenance]
+forbid_quarantined = true
