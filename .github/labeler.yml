@@ -1,0 +1,153 @@
+github:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**
+
+claude-config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .claude/**
+          - CLAUDE.md
+
+packages:
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/**
+          - src/**
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - tests/**
+          - "**/tests/**"
+          - "**/conftest.py"
+          - "**/test_*.py"
+          - "**/*_test.py"
+          - "**/*.{test,spec}.{js,jsx,ts,tsx}"
+          - pytest.ini
+          - pytest.toml
+
+scripts:
+  - changed-files:
+      - any-glob-to-any-file:
+          - scripts/**
+          - .github/scripts/**
+          - Makefile
+          - justfile
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - docs/**
+          - README.md
+          - CHANGELOG.md
+          - SECURITY.md
+          - CONTRIBUTING.md
+          - LICENSE
+          - LICENSE.md
+
+supply-chain:
+  - changed-files:
+      - any-glob-to-any-file:
+          - pyproject.toml
+          - "**/pyproject.toml"
+          - uv.lock
+          - uv.toml
+          - package.json
+          - "**/package.json"
+          - package-lock.json
+          - bun.lock
+          - bun.lockb
+          - pnpm-lock.yaml
+          - yarn.lock
+          - Cargo.toml
+          - Cargo.lock
+          - go.mod
+          - go.sum
+          - .npmrc
+          - .github/dependabot.yml
+          - .github/dependabot.yaml
+
+"plugin:manifest":
+  - changed-files:
+      - any-glob-to-any-file:
+          - .claude-plugin/**
+
+"plugin:settings":
+  - changed-files:
+      - any-glob-to-any-file:
+          - settings.json
+
+"plugin:skills":
+  - changed-files:
+      - any-glob-to-any-file:
+          - skills/**
+          - SKILL.md
+
+"plugin:subagents":
+  - changed-files:
+      - any-glob-to-any-file:
+          - agents/**
+
+"plugin:commands":
+  - changed-files:
+      - any-glob-to-any-file:
+          - commands/**
+
+"plugin:hooks":
+  - changed-files:
+      - any-glob-to-any-file:
+          - hooks/**
+          - scripts/hooks/**
+
+"plugin:mods":
+  - changed-files:
+      - any-glob-to-any-file:
+          - mods/**
+          - "hooks/**/register.{js,mjs,ts,mts}"
+
+"plugin:mcp":
+  - changed-files:
+      - any-glob-to-any-file:
+          - .mcp.json
+          - mcp/**
+          - mcp-servers/**
+          - "**/*.mcpb"
+          - "**/*.dxt"
+
+"plugin:lsp":
+  - changed-files:
+      - any-glob-to-any-file:
+          - .lsp.json
+          - lsp/**
+          - language-servers/**
+
+"plugin:output-styles":
+  - changed-files:
+      - any-glob-to-any-file:
+          - output-styles/**
+
+"plugin:workflows":
+  - changed-files:
+      - any-glob-to-any-file:
+          - workflows/**
+
+"plugin:themes":
+  - changed-files:
+      - any-glob-to-any-file:
+          - themes/**
+
+"plugin:monitors":
+  - changed-files:
+      - any-glob-to-any-file:
+          - monitors/**
+
+"plugin:executables":
+  - changed-files:
+      - any-glob-to-any-file:
+          - bin/**
+
+"plugin:evals":
+  - changed-files:
+      - any-glob-to-any-file:
+          - evals/**

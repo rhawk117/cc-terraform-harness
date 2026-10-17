@@ -1,0 +1,59 @@
+default_stages: [pre-commit]
+default_install_hook_types:
+  - pre-commit
+  - post-checkout
+  - post-merge
+  - post-rewrite
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+
+      - id: check-case-conflict
+
+      - id: check-json
+
+      - id: check-shebang-scripts-are-executable
+        types: [python]
+
+      - id: check-toml
+
+      - id: end-of-file-fixer
+
+      - id: forbid-submodules
+
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.13.1
+    hooks:
+      - id: uv-sync
+        args: ["--locked", "--all-packages"]
+
+      - id: uv-lock
+        files: ^(uv\.lock|pyproject\.toml|uv\.toml|packages/[^/]+/pyproject\.toml)$
+
+
+  - repo: local
+    hooks:
+      - id: format
+        name: Formatter
+        entry: bash ./scripts/format.sh
+        language: system
+        pass_filenames: true
+        stages: [pre-commit]
+
+      - id: lint
+        name: Linter
+        entry: bash ./scripts/lint.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        require_serial: true

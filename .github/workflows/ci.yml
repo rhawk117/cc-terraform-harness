@@ -1,0 +1,227 @@
+name: Continuous Integration (CI)
+on:
+  workflow_call:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-ci-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  labeler:
+    name: 📎 Label Pull Request
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Apply Labels (labeler.yml)
+        id: apply-labels
+        uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+        with:
+          repo-token: ${{ github.token }}
+          configuration-path: .github/labeler.yml
+          sync-labels: true
+          dot: true
+
+      - name: Summarize PR Labels
+        if: ${{ !cancelled() }}
+        run: bash ./.github/scripts/label-summary.sh
+        env:
+          LABELER_OUTCOME: ${{ steps.apply-labels.outcome }}
+          NEW_LABELS: ${{ steps.apply-labels.outputs.new-labels }}
+          ALL_LABELS: ${{ steps.apply-labels.outputs.all-labels }}
+
+  security-scanner:
+    name: Supply Chain Integrity
+    uses: ./.github/workflows/supply-chain-check.yml
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+
+  quality-checks:
+    name: Quality Checks (Pre-Commit)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: ${{ vars.UV_VERSION }}
+          cache-dependency-glob: uv.lock
+
+      - name: Synchronize Dependencies
+        run: uv sync --locked --group check --group test
+
+      - name: Run Pre-Commit
+        run: uv run --no-sync pre-commit run --all-files
+
+      # - name: Run Test Suite (Tier 1)
+      #   run: uv run --no-sync pytest -q -m "unit or smoke or agents"
+
+  integration-checks:
+    name: Integration Tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: ${{ vars.UV_VERSION }}
+          cache-dependency-glob: uv.lock
+
+      - name: Synchronize Dependencies
+        run: uv sync --locked --group check --group test
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+
+      # - name: Validate Claude Code Plugin
+      #   run: bash ./.github/scripts/cc-plugin-checker.sh
+
+      - name: Run Integration Tests
+        run: uv run --no-sync pytest -q -m "integration"
+
+  workflow-narrator:
+    name: 🔉 Workflow Narrator
+    needs: [labeler, quality-checks, integration-checks]
+    if: ${{ always() && !cancelled() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      NEEDS_CONTEXT: ${{ toJson(needs) }}
+      BRANCH_NAME: ${{ github.head_ref }}
+    steps:
+      - name: Publish Workflow Summary
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const pr = context.payload.pull_request;
+
+            if (!pr) {
+              core.setFailed('Workflow Narrator requires a pull request.');
+              return;
+            }
+
+            const { owner, repo } = context.repo;
+            const marker = '<!-- gha:plugin-ci:workflow-summary -->';
+            const workflowUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${context.runId}`;
+            const needs = JSON.parse(process.env.NEEDS_CONTEXT);
+
+            const icons = new Map([
+              ['success', ':heavy_check_mark:'],
+              ['failure', ':x:'],
+              ['cancelled', ':no_entry:'],
+              ['skipped', ':fast_forward:'],
+            ]);
+
+            const lines = [
+              marker,
+              `## Workflow Narrator - (${pr.head.ref})`,
+              '',
+              '| Job | Result | Logs |',
+              '| --- | --- | --- |',
+            ];
+
+            let succeeded = true;
+
+            for (const [name, { result }] of Object.entries(needs)) {
+              const icon = icons.get(result) ?? ':grey_question:';
+              const title = result.charAt(0).toUpperCase() + result.slice(1);
+              const logs = `[View Logs](${workflowUrl})`;
+
+              lines.push(`| ${name} | ${icon} ${title} | ${logs} |`);
+
+              if (result === 'success' || (name === 'labeler' && result === 'skipped')) {
+                continue;
+              }
+
+              succeeded = false;
+            }
+
+            lines.push('');
+
+            if (succeeded) {
+              lines.push(':heavy_check_mark: Workflow Succeeded');
+            } else {
+              lines.push(':warning: Workflow Did Not Succeed');
+            }
+
+            const body = lines.join('\n');
+            await core.summary.addRaw(body, true).write();
+
+            if (!succeeded) {
+              core.setFailed('One or more required jobs did not succeed.');
+            }
+
+            if (pr.head.repo?.full_name !== `${owner}/${repo}`) {
+              return;
+            }
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: pr.number,
+              per_page: 100,
+            });
+
+            const existing = comments.find(({ user, body }) => {
+              if (user?.login !== 'github-actions[bot]') {
+                return false;
+              }
+
+              return body?.startsWith(marker);
+            });
+
+            if (!existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pr.number,
+                body,
+              });
+              return;
+            }
+
+            await github.rest.issues.updateComment({
+              owner,
+              repo,
+              comment_id: existing.id,
+              body,
+            });
