@@ -1,5 +1,4 @@
 name: Continuous Integration (CI)
-
 on:
   workflow_call:
   pull_request:
@@ -9,23 +8,26 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: plugin-ci-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 defaults:
   run:
     shell: bash
 
+env:
+  NODE_VERSION: "24"
+  UV_VERSION: "0.13.1"
+
 jobs:
   labeler:
     name: 📎 Label Pull Request
     runs-on: ubuntu-24.04
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     timeout-minutes: 5
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     permissions:
       contents: read
       pull-requests: write
-      issues: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,40 +43,18 @@ jobs:
           sync-labels: true
           dot: true
 
-      - if: ${{ !cancelled() }}
-        shell: bash
+      - name: Summarize PR Labels
+        if: ${{ !cancelled() }}
+        run: bash ./.github/scripts/label-summary.sh
         env:
           LABELER_OUTCOME: ${{ steps.apply-labels.outcome }}
           NEW_LABELS: ${{ steps.apply-labels.outputs.new-labels }}
           ALL_LABELS: ${{ steps.apply-labels.outputs.all-labels }}
-        run: |
-          format_labels() {
-            local labels=${1:-} fallback=$2
-            if [[ -z "$labels" ]]; then
-              printf '%s\n' "$fallback"
-              return 0
-            fi
-            tr ',' '\n' <<< "$labels" | sed "s/^[[:space:]]*/- \`/; s/[[:space:]]*\$/\`/"
-          }
 
-          if [[ -n "${NEW_LABELS:-}" ]]; then
-            echo "::notice title=PR Labeler::Added labels: ${NEW_LABELS}"
-          fi
-
-          {
-            printf '%s\n' '## Pull Request Labels' ''
-            if [[ "${LABELER_OUTCOME:-}" != 'success' ]]; then
-              printf '%s\n' ':warning: The labeler step did not succeed — label state below may be incomplete.' ''
-            fi
-            printf '%s\n' '### Labels Added' ''
-            format_labels "${NEW_LABELS:-}" '_No new labels._'
-            printf '%s\n' '' '### Current PR Labels' ''
-            format_labels "${ALL_LABELS:-}" 'No labels found.'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  quality:
-    name: Quality Suite (Pre-Commit)
+  quality-checks:
+    name: Quality Checks (Pre-Commit)
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -83,26 +63,56 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Runner Environment
-        uses: ./.github/actions/bootstrap
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          cache-dependency-glob: uv.lock
 
-      - name: Run pre-commit
-        id: pre-commit
-        run: uv run pre-commit run --all-files
+      - name: Synchronize Dependencies
+        run: uv sync --locked --group check --group test
 
-      - name: Run tests
-        run: scripts/quality.sh --test
+      - name: Run Pre-Commit
+        run: uv run --no-sync pre-commit run --all-files
 
-      - if: ${{ failure() && !cancelled() && steps.pre-commit.outcome == 'failure' }}
-        shell: bash
-        run: |
-          echo ":x:One or more step(s) failed" >> "${GITHUB_STEP_SUMMARY}"
-          echo "::error::The pre-commit check failed, make sure it's installed"
-          exit 1
+      - name: Run Test Suite (Tier 1)
+        run: uv run --no-sync pytest -q -m "unit or smoke or agents"
+
+  integration-checks:
+    name: Integration Tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          cache-dependency-glob: uv.lock
+
+      - name: Synchronize Dependencies
+        run: uv sync --locked --group check --group test
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Validate Claude Code Plugin
+        run: bash ./.github/scripts/cc-plugin-checker.sh
+
+      - name: Run Integration Tests
+        run: uv run --no-sync pytest -q -m "integration"
 
   workflow-narrator:
-    name: Workflow Narrator 🔉
-    needs: [labeler, quality]
+    name: 🔉 Workflow Narrator
+    needs: [labeler, quality-checks, integration-checks]
     if: ${{ always() && !cancelled() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -111,40 +121,24 @@ jobs:
       pull-requests: write
     env:
       NEEDS_CONTEXT: ${{ toJson(needs) }}
-      COMMENT_TITLE: "Continuous Integration - ${{ github.base_ref }}"
       BRANCH_NAME: ${{ github.head_ref }}
     steps:
-      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      - name: Publish Workflow Summary
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{ github.token }}
           script: |
-            const { BRANCH_NAME, GITHUB_REPOSITORY, GITHUB_SERVER_URL, NEEDS_CONTEXT } = process.env;
-            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
 
-            const isFork = context.payload.pull_request?.head?.repo?.full_name !== `${owner}/${repo}`;
-
-            const narratorContext = {
-              commentDelimiter: "<!-- gha:workflow-summary -->",
-              commentTitle: `## Workflow Narrator - (${BRANCH_NAME})`,
-              branchName: BRANCH_NAME,
-              workflowURL: `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${context.runId}`,
-              issueNumber: context.payload.pull_request?.number,
-              needsContext: JSON.parse(NEEDS_CONTEXT)
-            };
-
-            if (!narratorContext.issueNumber) {
-              core.setFailed('Workflow Narrator requires a pull request context.');
+            if (!pr) {
+              core.setFailed('Workflow Narrator requires a pull request.');
               return;
             }
 
-
-            const summaryLines = [
-              narratorContext.commentDelimiter,
-              narratorContext.commentTitle,
-              '',
-              '| Job | Result | Logs |',
-              '| --- | --- | --- |',
-            ];
+            const { owner, repo } = context.repo;
+            const marker = '<!-- gha:plugin-ci:workflow-summary -->';
+            const workflowUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${context.runId}`;
+            const needs = JSON.parse(process.env.NEEDS_CONTEXT);
 
             const icons = new Map([
               ['success', ':heavy_check_mark:'],
@@ -153,60 +147,78 @@ jobs:
               ['skipped', ':fast_forward:'],
             ]);
 
-            let allJobsSucceeded = true;
-            Object.entries(narratorContext.needsContext)
-              .forEach(([jobName, { result }]) => {
-                const resultIcon = icons.get(result) ?? ':grey_question:';
-                const resultTitle = result.charAt(0).toUpperCase() + result.slice(1);
-                const viewLogsMessage = `[:page_facing_up: View Logs](${narratorContext.workflowURL})`;
+            const lines = [
+              marker,
+              `## Workflow Narrator - (${pr.head.ref})`,
+              '',
+              '| Job | Result | Logs |',
+              '| --- | --- | --- |',
+            ];
 
-                summaryLines.push(`| ${jobName} | ${resultIcon} ${resultTitle} | ${viewLogsMessage} |`);
-                const passed = result === 'success' || (jobName === 'labeler' && result === 'skipped');
-                allJobsSucceeded &&= passed;
-              });
+            let succeeded = true;
 
-            const footer = allJobsSucceeded
-              ? ':heavy_check_mark: Workflow Succeeded'
-              : ':warning: Workflow Did Not Succeed';
+            for (const [name, { result }] of Object.entries(needs)) {
+              const icon = icons.get(result) ?? ':grey_question:';
+              const title = result.charAt(0).toUpperCase() + result.slice(1);
+              const logs = `[View Logs](${workflowUrl})`;
 
-            summaryLines.push('', footer);
+              lines.push(`| ${name} | ${icon} ${title} | ${logs} |`);
 
-            const commentBody = summaryLines.join('\n');
-
-            await core.summary.addRaw(commentBody, true).write();
-
-            const commentOnPull = async () => {
-              const commentsFound = await github.paginate(
-                github.rest.issues.listComments,
-                { owner, repo, issue_number: narratorContext.issueNumber, per_page: 100 },
-              );
-
-              const existingComment = commentsFound.find(
-                ({ body }) => body?.includes(narratorContext.commentDelimiter)
-              );
-
-              if (existingComment) {
-                await github.rest.issues.updateComment({
-                  owner,
-                  repo,
-                  comment_id: existingComment.id,
-                  body: commentBody,
-                });
-                return;
+              if (result === 'success' || (name === 'labeler' && result === 'skipped')) {
+                continue;
               }
 
+              succeeded = false;
+            }
+
+            lines.push('');
+
+            if (succeeded) {
+              lines.push(':heavy_check_mark: Workflow Succeeded');
+            } else {
+              lines.push(':warning: Workflow Did Not Succeed');
+            }
+
+            const body = lines.join('\n');
+
+            await core.summary.addRaw(body, true).write();
+
+            if (!succeeded) {
+              core.setFailed('One or more required jobs did not succeed.');
+            }
+
+            if (pr.head.repo?.full_name !== `${owner}/${repo}`) {
+              return;
+            }
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: pr.number,
+              per_page: 100,
+            });
+
+            const existing = comments.find(({ user, body }) => {
+              if (user?.login !== 'github-actions[bot]') {
+                return false;
+              }
+
+              return body?.startsWith(marker);
+            });
+
+            if (!existing) {
               await github.rest.issues.createComment({
                 owner,
                 repo,
-                issue_number: narratorContext.issueNumber,
-                body: commentBody,
+                issue_number: pr.number,
+                body,
               });
-            };
-
-            if (!isFork) {
-              await commentOnPull();
+              return;
             }
 
-            if (!allJobsSucceeded) {
-              core.setFailed('One or more required jobs did not succeed.');
-            }
+            await github.rest.issues.updateComment({
+              owner,
+              repo,
+              comment_id: existing.id,
+              body,
+            });
