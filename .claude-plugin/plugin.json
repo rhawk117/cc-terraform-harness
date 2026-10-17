@@ -1,11 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
-  "name": "mightymodels",
-  "displayName": "mightymodels",
+  "name": "terraform-harness",
+  "displayName": "terraform-harness",
   "version": "0.1.0",
   "description": "Takes a piece of work from the first question to a merged PR in Claude Code, with the decisions left to you and a task closed only when its verification commands pass. The plugin code is not yet ported.",
-  "homepage": "https://github.com/rhawk117/mightymodels",
-  "repository": "https://github.com/rhawk117/mightymodels",
+  "homepage": "https://github.com/rhawk117/cc-terraform-harness",
+  "repository": "https://github.com/rhawk117/cc-terraform-harness",
   "author": {
     "name": "rhawk117"
   },
