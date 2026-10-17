@@ -1,4 +1,3 @@
-
 name: Create Release
 on:
   workflow_dispatch:
@@ -22,7 +21,6 @@ defaults:
 
 env:
   PACKAGE_NAME: tf-harness-plugin
-  UV_VERSION: "0.13.1"
   VERSION_BUMP: ${{ inputs.version-bump }}
   REPOSITORY_IS_FORK: ${{ github.event.repository.fork }}
 
@@ -69,8 +67,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Bootstrap Runner
-        uses: ./.github/actions/bootstrap
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: ${{ vars.UV_VERSION }}
+          cache-dependency-glob: uv.lock
+
+      - name: Sync Dependencies
+        run: uv sync --all-groups --locked
 
       - name: Prepare Release
         id: prepare
@@ -91,13 +95,13 @@ jobs:
       - name: Publish GitHub Release
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "::notice::Release already exists: $RELEASE_TAG"
+            echo "::notice::Release already exists: ${RELEASE_TAG}"
             exit 0
           fi
 
           gh release create "$RELEASE_TAG" \
-            --title "$RELEASE_TAG" \
+            --title "Release $RELEASE_TAG" \
             --generate-notes \
             --verify-tag
 
-          echo "::notice::Published GitHub Release: $RELEASE_TAG"
+          echo "::notice::Published GitHub Release: ${RELEASE_TAG}"

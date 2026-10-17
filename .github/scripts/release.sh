@@ -60,8 +60,7 @@ validate_current_release() {
 bump_release() {
   log::step "Bump Release Version ($VERSION_BUMP)"
 
-  [[ -z "$(git status --porcelain)" ]] ||
-    panic "Working tree is not clean."
+  [[ -z "$(git status --porcelain)" ]] || panic "Working tree is not clean."
 
   uv version --package "$PACKAGE_NAME" --bump "$VERSION_BUMP" --no-sync
 
