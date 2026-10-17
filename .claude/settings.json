@@ -1,0 +1,67 @@
+{
+  "permissions": {
+    "ask": [
+      "Edit(pyproject.toml)",
+      "Edit(uv.lock)",
+      "Edit(ruff.toml)",
+      "Edit(pytest.toml)",
+      "Edit(ty.toml)",
+      "Edit(CLAUDE.md)"
+    ]
+  },
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--quiet",
+              "--script",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/pyhooks.py",
+              "suppressions"
+            ]
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--quiet",
+              "--script",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/pyhooks.py",
+              "format"
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--quiet",
+              "--script",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/pyhooks.py",
+              "diagnose"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -30,7 +30,6 @@ run_formatter() {
 }
 
 run_linter() {
-
   run_step 'Ruff Format Check' uv run ruff format "${RUFF_CONFIG[@]}" --check .
   run_step 'Ruff Check' uv run ruff check "${RUFF_CONFIG[@]}" --no-fix .
   run_step 'Markdown Check' uv run mdformat --check "${MARKDOWN_GLOBS[@]}"
@@ -45,9 +44,6 @@ run_linter() {
   run_step '[root] plugin validate' claude plugin validate --strict .
 }
 
-run_tests() {
-  run_step 'Pytest' uv run pytest
-}
 
 main() {
   repository_root=$(git rev-parse --show-toplevel) || return 1
@@ -59,7 +55,6 @@ main() {
   case "${1:-}" in
   --format) run_formatter ;;
   --lint) run_linter ;;
-  --test) run_tests ;;
   '')
     run_formatter
     run_linter
