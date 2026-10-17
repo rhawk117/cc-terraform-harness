@@ -2,14 +2,13 @@
   "permissions": {
     "ask": [
       "Edit(pyproject.toml)",
-      "Edit(uv.lock)",
       "Edit(ruff.toml)",
       "Edit(pytest.toml)",
       "Edit(ty.toml)",
       "Edit(CLAUDE.md)"
-    ]
+    ],
+    "deny": ["Edit(uv.lock)"]
   },
-
   "hooks": {
     "PreToolUse": [
       {

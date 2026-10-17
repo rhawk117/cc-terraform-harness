@@ -33,8 +33,7 @@ class HookInput(msgspec.Struct, frozen=True, kw_only=True):
     cwd: str = ''
 
 
-class HookOutput(msgspec.Struct, frozen=True, kw_only=True, rename='camel'):
-    pass
+class HookOutput(msgspec.Struct, frozen=True, kw_only=True, rename="camel"): ...
 
 
 class ContextOutput(HookOutput, frozen=True, kw_only=True):
@@ -94,7 +93,8 @@ class SuppressionPolicy:
     options: HookOptions = field(default_factory=HookOptions)
 
     def select_suppressed_lines(self, text: str) -> Iterator[str]:
-        return filter(self.options.is_suppressed, map(str.strip, text.splitlines()))
+        lines = map(str.strip, text.splitlines())
+        return filter(self.options.is_suppressed, lines)
 
     @property
     def added_suppressions(self) -> tuple[str, ...]:
@@ -250,6 +250,7 @@ class SuppressionHandler:
 
         change = await asyncio.to_thread(describe_change, hook_input)
         policy = SuppressionPolicy(change=change, options=self.options)
+
         if issues := policy.get_suppression_issues():
             return create_permission_response(issues.reason)
 
@@ -297,7 +298,7 @@ def parse_command() -> HookCommand:
 async def main() -> int:
     command = parse_command()
     hook_input = msgspec.json.decode(sys.stdin.read(), type=HookInput)
-    cwd = os.getenv('CLAUDE_PROJECT_DIR') or hook_input.cwd
+    cwd = os.getenv("CLAUDE_PROJECT_DIR", hook_input.cwd)
 
     project_dir = Path(cwd)
     router = create_hook_router(project_dir)
