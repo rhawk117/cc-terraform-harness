@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+dist/
+*.egg-info/
+.coverage
+.ref
+plugins/vibe-code/evals/results/
+plugins/python-harness/evals/results/
+coverage.xml

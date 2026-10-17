@@ -3,15 +3,52 @@ name = "tf-harness-plugin"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "rhawk117", email = "hawkinsry19@gmail.com" }
-]
+authors = [{ name = "rhawk117", email = "hawkinsry19@gmail.com" }]
 requires-python = ">=3.14"
 dependencies = []
 
-[project.scripts]
-tf-harness-plugin = "tf_harness_plugin:main"
-
 [build-system]
-requires = ["uv_build>=0.13.1,<0.14.0"]
+requires = ["uv_build>=0.11.29,<0.12.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+check = [
+    "mdformat>=1.0.0",
+    "mdformat-frontmatter>=2.1.2",
+    "pre-commit>=4.7.0",
+    "ruff>=0.17.1",
+    "ty>=0.0.88",
+]
+test = [
+    "anyio>=4.15.1",
+    "hypothesis>=6.169.4",
+    "msgspec>=0.22.0",
+    "pytest>=9.1.1",
+    "pytest-anyio>=0.0.0",
+    "pytest-cov>=7.1.0",
+    "pytest-mock>=3.16.0",
+    "pytest-randomly>=5.0.0",
+    "pytest-xdist>=3.8.0",
+]
+dev = [{ include-group = "check" }, { include-group = "test" }]
+
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+source = ["packages"]
+omit = ["*/test_*.py", "*/conftest.py"]
+
+[tool.coverage.report]
+include = ["packages/*/src/**/*.py"]
+include_namespace_packages = true
+show_missing = true
+skip_covered = true
+skip_empty = true
+precision = 1
