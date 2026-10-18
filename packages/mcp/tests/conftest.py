@@ -12,6 +12,9 @@ if TYPE_CHECKING:
     from mcp.server.mcpserver import MCPServer
 
 
+pytest_plugins = ['tf_harness_mcp.runner.tests.recording']
+
+
 @pytest.fixture
 def project_root(tmp_path: Path) -> Path:
     return tmp_path
