@@ -9,7 +9,7 @@ pytestmark = [
     pytest.mark.skipif(shutil.which('uv') is None, reason='uv is not on PATH'),
 ]
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 
 
 class TestStdioLaunch:
