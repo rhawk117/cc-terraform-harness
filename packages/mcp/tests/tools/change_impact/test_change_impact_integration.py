@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 from tf_harness_mcp.runner.process import create_command_runner
 from tf_harness_mcp.server import create_server
+from tf_harness_mcp.tools.tests.results import read_tool_text
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -100,7 +101,7 @@ def write(root: Path, relative: str, text: str) -> None:
 
 async def read_impact(client: Client, path: Path, **arguments: str) -> dict[str, Any]:
     result = await client.call_tool('change_impact', {'path': str(path)} | arguments)
-    text = ''.join(getattr(block, 'text', '') for block in result.content)
+    text = read_tool_text(result)
     assert not result.is_error, text
     assert result.structured_content is not None
     return result.structured_content

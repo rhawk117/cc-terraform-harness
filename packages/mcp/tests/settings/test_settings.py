@@ -94,6 +94,10 @@ def schema_cache_absent_home_cases() -> pytest.MarkDecorator:
     )
 
 
+def empty_or_relative_xdg_cache_home_cases() -> pytest.MarkDecorator:
+    return pytest.mark.parametrize('xdg_cache_home', ['', 'relative/cache'])
+
+
 class TestSchemaSettings:
     xdg_cache_home = Path('/xdg/cache')
     home = Path('/home/someone')
@@ -115,7 +119,7 @@ class TestSchemaSettings:
 
         assert cache_dir == self.xdg_cache_home.joinpath('tf-harness', 'provider-schemas')
 
-    @pytest.mark.parametrize('xdg_cache_home', ['', 'relative/cache'])
+    @empty_or_relative_xdg_cache_home_cases()
     def test_defaults_under_home_when_xdg_cache_home_is_empty_or_relative(
         self, project_root: Path, xdg_cache_home: str
     ) -> None:

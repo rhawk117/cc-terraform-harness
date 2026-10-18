@@ -10,12 +10,12 @@ from tf_harness_mcp.runner.domain import CommandResult
 from tf_harness_mcp.runner.process import create_command_runner
 from tf_harness_mcp.server import create_server
 from tf_harness_mcp.settings import Settings
+from tf_harness_mcp.tools.tests.results import read_tool_text
 
 if TYPE_CHECKING:
     from _pytest.mark import ParameterSet
     from mcp import Client
     from mcp.server.mcpserver import MCPServer
-    from mcp.types import CallToolResult
     from tf_harness_mcp.runner.tests.recording import RecordingCommandRunner
 
 FIXTURE = Path(__file__).parents[2].joinpath('provider_schemas', 'schema.json')
@@ -38,13 +38,9 @@ LOCK_TEXT = (
 NULL_LOCK_TEXT = LOCK_TEXT.replace('aws', 'null').replace('6.69.1', '3.3.2')
 
 
-def read_text(result: CallToolResult) -> str:
-    return ''.join(getattr(block, 'text', '') for block in result.content)
-
-
 async def read_level(client: Client, module: Path, **arguments: str) -> dict[str, Any]:
     result = await client.call_tool('provider_schema', {'path': str(module)} | arguments)
-    assert not result.is_error, read_text(result)
+    assert not result.is_error, read_tool_text(result)
     assert result.structured_content is not None
     return result.structured_content
 
@@ -52,7 +48,7 @@ async def read_level(client: Client, module: Path, **arguments: str) -> dict[str
 async def read_error(client: Client, module: Path, **arguments: str) -> str:
     result = await client.call_tool('provider_schema', {'path': str(module)} | arguments)
     assert result.is_error
-    return read_text(result)
+    return read_tool_text(result)
 
 
 def names(entries: list[dict[str, Any]]) -> list[str]:

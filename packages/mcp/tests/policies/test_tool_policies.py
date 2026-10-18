@@ -11,6 +11,7 @@ from tf_harness_mcp.errors import HarnessError
 from tf_harness_mcp.policies import containment
 from tf_harness_mcp.policies.containment import PROJECT_PATH_MARKER
 from tf_harness_mcp.policies.errors import PathOutsideRootError
+from tf_harness_mcp.tools.tests.results import read_tool_text
 
 if TYPE_CHECKING:
     from mcp.types import Tool
@@ -127,7 +128,7 @@ async def assert_refuses_outside_paths(client: Client, outside: OutsidePath) -> 
         for name in list_project_path_names(tool):
             arguments = fill_arguments(tool, outside.path)
             result = await client.call_tool(tool.name, arguments)
-            text = ''.join(getattr(block, 'text', '') for block in result.content)
+            text = read_tool_text(result)
 
             assert result.is_error, f'{tool.name} accepted a path outside the root via {name}'
             assert outside.expected_message in text, f'{tool.name} failed before containment'

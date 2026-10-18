@@ -5,6 +5,7 @@ import pytest
 from tf_harness_mcp.structure.domain import Block
 from tf_harness_mcp.tools.change_impact.domain import LineRange
 from tf_harness_mcp.tools.change_impact.policy import RangeTouchPolicy, normalize_expression
+from tf_harness_mcp.tools.tests.results import read_tool_text
 
 from .conftest import BASE
 
@@ -75,7 +76,7 @@ def block_at(start_line: int, end_line: int) -> Block:
 
 async def read_impact(client: Client, path: Path, **arguments: str) -> dict[str, Any]:
     result = await client.call_tool('change_impact', {'path': str(path)} | arguments)
-    text = ''.join(getattr(block, 'text', '') for block in result.content)
+    text = read_tool_text(result)
     assert not result.is_error, text
     assert result.structured_content is not None
     return result.structured_content
@@ -84,7 +85,7 @@ async def read_impact(client: Client, path: Path, **arguments: str) -> dict[str,
 async def read_failure(client: Client, path: Path, **arguments: str) -> str:
     result = await client.call_tool('change_impact', {'path': str(path)} | arguments)
     assert result.is_error
-    return ''.join(getattr(block, 'text', '') for block in result.content)
+    return read_tool_text(result)
 
 
 @pytest.fixture

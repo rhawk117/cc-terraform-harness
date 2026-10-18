@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from tf_harness_mcp.settings import Settings
+from tf_harness_mcp.tools.tests.results import read_tool_text
 
 if TYPE_CHECKING:
     from mcp import Client
@@ -17,7 +18,7 @@ LOWERED_CAP = 100
 
 def error_text(result: CallToolResult) -> str:
     assert result.is_error
-    return ''.join(getattr(block, 'text', '') for block in result.content)
+    return read_tool_text(result)
 
 
 @pytest.fixture

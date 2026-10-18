@@ -11,7 +11,12 @@ from tf_harness_mcp.runner.errors import (
     CommandNotFoundError,
     CommandTimeoutError,
 )
-from tf_harness_mcp.runner.policy import AllowedCommand, ReadOnlyCommandPolicy, ReadOnlyOptions
+from tf_harness_mcp.runner.policy import (
+    AllowedCommand,
+    ReadOnlyCommandPolicy,
+    ReadOnlyOptions,
+    default_read_only_commands,
+)
 from tf_harness_mcp.runner.process import create_command_runner
 
 if TYPE_CHECKING:
@@ -106,6 +111,39 @@ def refused_command_cases() -> pytest.MarkDecorator:
     }
     params: list[ParameterSet] = [pytest.param(cmd, id=name) for name, cmd in names.items()]
     return pytest.mark.parametrize('command', params)
+
+
+@pytest.mark.unit
+class TestDefaultReadOnlyCommands:
+    def test_default_read_only_commands_pin_the_ten_prefixes_in_order(self) -> None:
+        assert tuple(command.prefix for command in default_read_only_commands()) == (
+            ('terraform', 'version'),
+            ('terraform', 'fmt', '-check'),
+            ('terraform', 'validate'),
+            ('terraform', 'providers', 'schema', '-json'),
+            ('tflint',),
+            ('git', 'rev-parse', '--verify', '--quiet', '--end-of-options'),
+            ('git', 'merge-base'),
+            ('git', 'diff', '--no-ext-diff', '--no-textconv'),
+            ('git', 'ls-files', '--others', '--exclude-standard'),
+            ('git', 'cat-file', 'blob'),
+        )
+
+    def test_default_read_only_commands_forbid_flags_only_on_tflint_and_git_diff(self) -> None:
+        forbidden = {
+            command.prefix: command.forbidden_flags
+            for command in default_read_only_commands()
+            if command.forbidden_flags
+        }
+
+        assert forbidden == {
+            ('tflint',): ('--fix', '--init'),
+            ('git', 'diff', '--no-ext-diff', '--no-textconv'): (
+                '--output',
+                '--ext-diff',
+                '--textconv',
+            ),
+        }
 
 
 @pytest.mark.unit

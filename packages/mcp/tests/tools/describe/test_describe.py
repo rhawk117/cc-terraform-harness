@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 from tf_harness_mcp.settings import Settings
+from tf_harness_mcp.tools.tests.results import read_tool_text
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -57,7 +58,7 @@ BROKEN_TF = 'variable "oops" {\n'
 
 def error_text(result: CallToolResult) -> str:
     assert result.is_error
-    return ''.join(getattr(block, 'text', '') for block in result.content)
+    return read_tool_text(result)
 
 
 async def describe(client: Client, path: Path) -> dict[str, Any]:
@@ -79,6 +80,13 @@ def module_dir(project_root: Path) -> Path:
 @pytest.fixture
 async def module_summary(client: Client, module_dir: Path) -> dict[str, Any]:
     return await describe(client, module_dir)
+
+
+@pytest.fixture
+def broken_module_file(module_dir: Path) -> Path:
+    broken = module_dir.joinpath('broken.tf')
+    broken.write_text(BROKEN_TF)
+    return broken
 
 
 @pytest.mark.unit
@@ -129,6 +137,21 @@ class TestDescribeModule:
             ('network', './network')
         ]
 
+    async def test_locates_each_entry_kind_in_main_tf(
+        self, module_summary: dict[str, Any], module_dir: Path
+    ) -> None:
+        main_tf = str(module_dir.joinpath('main.tf'))
+
+        assert {
+            kind: module_summary[kind][0]['location']
+            for kind in ('outputs', 'resources', 'data_sources', 'module_calls')
+        } == {
+            'outputs': {'file': main_tf, 'start_line': 35, 'end_line': 38},
+            'resources': {'file': main_tf, 'start_line': 25, 'end_line': 27},
+            'data_sources': {'file': main_tf, 'start_line': 29, 'end_line': 29},
+            'module_calls': {'file': main_tf, 'start_line': 31, 'end_line': 33},
+        }
+
     async def test_lists_required_providers_with_constraints_and_local_names(
         self, module_summary: dict[str, Any]
     ) -> None:
@@ -147,14 +170,11 @@ class TestDescribeModule:
         assert len(summary['variables']) == 2
 
     async def test_reports_a_file_that_does_not_parse_as_a_problem(
-        self, client: Client, module_dir: Path
+        self, client: Client, module_dir: Path, broken_module_file: Path
     ) -> None:
-        broken = module_dir.joinpath('broken.tf')
-        broken.write_text(BROKEN_TF)
-
         summary = await describe(client, module_dir)
 
-        assert [entry['path'] for entry in summary['problems']] == [str(broken)]
+        assert [entry['path'] for entry in summary['problems']] == [str(broken_module_file)]
         assert len(summary['variables']) == 2
 
     async def test_starts_no_subprocess(
@@ -162,6 +182,13 @@ class TestDescribeModule:
     ) -> None:
         assert module_summary
         assert not recording_runner.calls
+
+
+@pytest.fixture
+def broken_tfvars_file(module_dir: Path) -> Path:
+    broken = module_dir.joinpath('bad.tfvars')
+    broken.write_text('region = \n')
+    return broken
 
 
 @pytest.mark.unit
@@ -177,29 +204,29 @@ class TestDescribeTfvars:
         assert summary['undeclared'][0]['location']['start_line'] == 2
 
     async def test_reports_a_tfvars_file_that_does_not_parse(
-        self, client: Client, module_dir: Path
+        self, client: Client, broken_tfvars_file: Path
     ) -> None:
-        broken = module_dir.joinpath('bad.tfvars')
-        broken.write_text('region = \n')
+        summary = await describe(client, broken_tfvars_file)
 
-        summary = await describe(client, broken)
-
-        assert [entry['path'] for entry in summary['problems']] == [str(broken)]
+        assert [entry['path'] for entry in summary['problems']] == [str(broken_tfvars_file)]
 
 
 @pytest.mark.unit
 class TestDescribeRefusals:
+    @pytest.fixture
+    def notes_file(self, project_root: Path) -> Path:
+        path = project_root.joinpath('notes.txt')
+        path.write_text('x')
+        return path
+
     async def call(self, client: Client, path: Path) -> str:
         return error_text(await client.call_tool('describe', {'path': str(path)}))
 
     async def test_refuses_a_file_that_is_neither_tf_nor_tfvars(
-        self, client: Client, project_root: Path
+        self, client: Client, notes_file: Path
     ) -> None:
-        path = project_root.joinpath('notes.txt')
-        path.write_text('x')
-
-        assert f'not a directory, a .tf file or a .tfvars file: {path}' in await self.call(
-            client, path
+        assert f'not a directory, a .tf file or a .tfvars file: {notes_file}' in await self.call(
+            client, notes_file
         )
 
     async def test_refuses_a_missing_path_without_starting_a_subprocess(
@@ -217,13 +244,17 @@ class TestDescribeWithinBudget:
     def settings(self, project_root: Path) -> Settings:
         return Settings(project_root=project_root, output_budget_bytes=2000)
 
-    async def test_cuts_the_variable_list_to_the_budget(
-        self, client: Client, project_root: Path
-    ) -> None:
+    @pytest.fixture
+    def many_variables_file(self, project_root: Path) -> Path:
         blocks = [f'variable "v{index}" {{\n  type = string\n}}\n' for index in range(30)]
-        project_root.joinpath('many.tf').write_text(''.join(blocks))
+        path = project_root.joinpath('many.tf')
+        path.write_text(''.join(blocks))
+        return path
 
-        summary = await describe(client, project_root.joinpath('many.tf'))
+    async def test_cuts_the_variable_list_to_the_budget(
+        self, client: Client, many_variables_file: Path
+    ) -> None:
+        summary = await describe(client, many_variables_file)
 
         assert len(json.dumps(summary, separators=(',', ':'))) <= 2000
         assert summary['variables_omitted'] > 0
