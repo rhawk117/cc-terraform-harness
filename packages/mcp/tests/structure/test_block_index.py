@@ -178,6 +178,34 @@ class TestBlockIndex:
         assert files == {module_dir.joinpath('main.tf')}
 
 
+class TestLargeModule:
+    block_count = 200
+    lines_per_block = 4
+
+    @pytest.fixture
+    def large_module_dir(self, project_root: Path) -> Path:
+        blocks = (
+            f'variable "v{number}" {{\n  type    = string\n  default = "x"\n}}\n'
+            for number in range(self.block_count)
+        )
+        project_root.joinpath('main.tf').write_text(''.join(blocks))
+        return project_root
+
+    @pytest.fixture
+    def large_index(self, project_root: Path, large_module_dir: Path) -> ModuleIndex:
+        return index_module(project_root, large_module_dir)
+
+    @pytest.mark.regression
+    def test_every_block_keeps_its_line_range(self, large_index: ModuleIndex) -> None:
+        ranges = [(block.start_line, block.end_line) for block in large_index.blocks]
+        expected = [
+            (number * self.lines_per_block + 1, (number + 1) * self.lines_per_block)
+            for number in range(self.block_count)
+        ]
+
+        assert ranges == expected
+
+
 class TestUnreadableFiles:
     @pytest.fixture
     def directory_named_tf_index(self, project_root: Path, module_dir: Path) -> ModuleIndex:
