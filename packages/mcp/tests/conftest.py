@@ -13,7 +13,10 @@ if TYPE_CHECKING:
     from tf_harness_mcp.runner.tests.recording import RecordingCommandRunner
 
 
-pytest_plugins = ['tf_harness_mcp.runner.tests.recording']
+pytest_plugins = [
+    'tf_harness_mcp.runner.tests.recording',
+    'tf_harness_mcp.tools.diagnostics.tests.scripting',
+]
 
 
 @pytest.fixture
