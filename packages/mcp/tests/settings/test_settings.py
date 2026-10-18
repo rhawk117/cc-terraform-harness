@@ -87,6 +87,13 @@ class TestLoadSettings:
             load_settings(['--project-root', str(missing)], {})
 
 
+def schema_cache_absent_home_cases() -> pytest.MarkDecorator:
+    return pytest.mark.parametrize(
+        'environ',
+        [pytest.param({}, id='absent'), pytest.param({'HOME': ''}, id='empty')],
+    )
+
+
 class TestSchemaSettings:
     xdg_cache_home = Path('/xdg/cache')
     home = Path('/home/someone')
@@ -121,6 +128,14 @@ class TestSchemaSettings:
         cache_dir = self.load_cache_dir(project_root, {'HOME': str(self.home)})
 
         assert cache_dir == self.home.joinpath('.cache', 'tf-harness', 'provider-schemas')
+
+    @schema_cache_absent_home_cases()
+    def test_defaults_under_the_current_user_home_when_home_is_absent_or_empty(
+        self, project_root: Path, environ: dict[str, str]
+    ) -> None:
+        cache_dir = self.load_cache_dir(project_root, environ)
+
+        assert cache_dir == Path.home().joinpath('.cache', 'tf-harness', 'provider-schemas')
 
     def test_environment_overrides_the_default(self, project_root: Path) -> None:
         environ = {
