@@ -203,6 +203,38 @@ class TestDiagnosticsOnUninitializedDirectory:
 
 
 @pytest.mark.unit
+class TestDiagnosticsOnUnusableDirectory:
+    @pytest.fixture
+    def missing(self, project_root: Path) -> Path:
+        return project_root.joinpath('missing').resolve()
+
+    @pytest.fixture
+    def regular_file(self, project_root: Path) -> Path:
+        path = project_root.joinpath('main.tf')
+        path.write_text('')
+        return path.resolve()
+
+    async def assert_refused_naming_path(
+        self, client: Client, recording_runner: RecordingCommandRunner, path: Path
+    ) -> None:
+        result = await call_diagnostics(client, path)
+
+        assert result.is_error
+        assert str(path) in str(result.content)
+        assert recording_runner.calls == []
+
+    async def test_missing_directory_is_refused_before_any_check_runs(
+        self, client: Client, recording_runner: RecordingCommandRunner, missing: Path
+    ) -> None:
+        await self.assert_refused_naming_path(client, recording_runner, missing)
+
+    async def test_regular_file_is_refused_before_any_check_runs(
+        self, client: Client, recording_runner: RecordingCommandRunner, regular_file: Path
+    ) -> None:
+        await self.assert_refused_naming_path(client, recording_runner, regular_file)
+
+
+@pytest.mark.unit
 class TestDiagnosticsOutputBudget:
     ceiling = 1_000
     unformatted_count = 200

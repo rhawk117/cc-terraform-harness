@@ -12,6 +12,7 @@ from tf_harness_mcp.policies.budget import create_output_budget
 from tf_harness_mcp.runner.domain import Command
 from tf_harness_mcp.runner.errors import CommandNotFoundError
 from tf_harness_mcp.tools.diagnostics.domain import CheckReport, Finding
+from tf_harness_mcp.tools.diagnostics.errors import DirectoryNotFoundError
 from tf_harness_mcp.tools.diagnostics.schemas import TflintOutput, ValidateOutput
 
 if TYPE_CHECKING:
@@ -30,6 +31,13 @@ def parse_output[Model: BaseModel](model: type[Model], result: CommandResult) ->
         return model.model_validate_json(result.stdout)
     except ValidationError:
         return None
+
+
+def get_directory_problem(directory: Path) -> DirectoryNotFoundError | None:
+    if directory.is_dir():
+        return None
+
+    return DirectoryNotFoundError(path=directory)
 
 
 def create_failure_report(name: str, result: CommandResult) -> CheckReport:
@@ -142,6 +150,13 @@ class DiagnosticsTool:
     budget: OutputBudget
     service: DiagnosticsService
 
+    def resolve_directory(self, directory: containment.ProjectPath) -> Path:
+        resolved = containment.resolve_project_path(self.root, directory)
+        if problem := get_directory_problem(resolved):
+            raise problem
+
+        return resolved
+
     async def diagnostics(self, directory: containment.ProjectPath) -> dict[str, Any]:
         """Check one Terraform module directory without changing it.
 
@@ -151,7 +166,7 @@ class DiagnosticsTool:
         the reason. The directory is relative to the project root or absolute inside it.
         """
         try:
-            resolved = containment.resolve_project_path(self.root, directory)
+            resolved = self.resolve_directory(directory)
             reports = await self.service.run(resolved)
             checks = {name: asdict(report) for name, report in reports.items()}
             return self.budget.apply({'directory': str(resolved), 'checks': checks})
