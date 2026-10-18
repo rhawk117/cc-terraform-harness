@@ -54,6 +54,9 @@ resource "null_resource" "a" {
 
 resource "null_resource" "c" {}
 """
+SPLIT_MAIN_BASE = 'output "id" {\n  value = 1\n}\n'
+SPLIT_VARIABLES_BASE = 'variable "name" {\n  type = string\n}\n'
+SPLIT_VARIABLES_CURRENT = 'variable "name" {\n  type = number\n}\n'
 SHARED_DIFF = '@@ -2 +2 @@\n@@ -16,0 +14 @@\n'
 CALL = 'module "shared" {{\n  source = "{source}"\n}}\n'
 
@@ -229,3 +232,37 @@ class TestChangeImpactProblems:
         text = await read_failure(client, project_root)
 
         assert 'does not parse as HCL' in text
+
+
+class TestChangeImpactSplitModule:
+    @pytest.fixture
+    def split_module(self, project_root: Path, git_harness: GitHarness) -> Path:
+        write(project_root, 'main.tf', '')
+        write(project_root, 'modules/net/main.tf', '')
+        write(project_root, 'variables.tf', SPLIT_VARIABLES_CURRENT)
+        git_harness.script_resolution('HEAD')
+        git_harness.script_merge_base()
+        git_harness.script_name_status(
+            'M', 'main.tf', 'M', 'modules/net/main.tf', 'M', 'variables.tf'
+        )
+        for path in ('main.tf', 'modules/net/main.tf', 'variables.tf'):
+            git_harness.script_hunks(path, '@@ -1 +1 @@\n')
+        git_harness.script_base_content('main.tf', SPLIT_MAIN_BASE)
+        git_harness.script_base_content('modules/net/main.tf', '')
+        git_harness.script_base_content('variables.tf', SPLIT_VARIABLES_BASE)
+        git_harness.script_untracked()
+        return project_root
+
+    async def test_files_split_by_a_changed_subdirectory_share_one_module(
+        self, client: Client, split_module: Path
+    ) -> None:
+        impact = await read_impact(client, split_module)
+
+        found = {
+            (change['module'], change['kind'], change['name'], change['change'])
+            for change in impact['interface']
+        }
+        assert found == {
+            (str(split_module), 'output', 'id', 'removed'),
+            (str(split_module), 'variable', 'name', 'type_changed'),
+        }

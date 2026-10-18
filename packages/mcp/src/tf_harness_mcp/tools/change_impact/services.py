@@ -1,7 +1,7 @@
 """Report the Terraform blocks a diff changed, their interface changes and the roots they reach."""
 
+from collections import defaultdict
 from dataclasses import asdict, dataclass
-from itertools import groupby
 from operator import attrgetter
 from typing import TYPE_CHECKING, Any
 
@@ -144,10 +144,11 @@ class InterfaceReader:
 
 
 def group_by_module(snapshots: list[ChangeSnapshot]) -> dict[Path, list[ChangeSnapshot]]:
-    ordered = sorted(snapshots, key=attrgetter('path'))
-    return {
-        directory: list(group) for directory, group in groupby(ordered, key=attrgetter('directory'))
-    }
+    modules: defaultdict[Path, list[ChangeSnapshot]] = defaultdict(list)
+    for snapshot in sorted(snapshots, key=attrgetter('path')):
+        modules[snapshot.directory].append(snapshot)
+
+    return dict(modules)
 
 
 def list_changed_blocks(snapshots: list[ChangeSnapshot]) -> list[ChangedBlock]:
