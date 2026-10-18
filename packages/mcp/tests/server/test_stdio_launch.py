@@ -30,4 +30,10 @@ class TestStdioLaunch:
         async with Client(launch) as client:
             tools = await client.list_tools()
 
-        assert [tool.name for tool in tools.tools] == ['diagnostics', 'plan_digest', 'describe']
+        assert [tool.name for tool in tools.tools] == [
+            'diagnostics',
+            'plan_digest',
+            'describe',
+            'provider_schema',
+            'change_impact',
+        ]
