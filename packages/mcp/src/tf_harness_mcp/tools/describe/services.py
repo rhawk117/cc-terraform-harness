@@ -8,17 +8,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from tf_harness_mcp.errors import HarnessError
 from tf_harness_mcp.policies import containment
 from tf_harness_mcp.policies.budget import create_output_budget
-from tf_harness_mcp.structure.services import (
-    create_block_indexer,
-    first_child_of_type,
-    get_children,
-    node_text,
-    read_attributes,
-    read_flag,
-    read_required_providers,
-    read_string,
-    read_value,
-)
+from tf_harness_mcp.structure.services import create_block_indexer
 from tf_harness_mcp.tools.describe.domain import (
     AssignmentEntry,
     Location,
@@ -36,11 +26,9 @@ from tf_harness_mcp.tools.describe.errors import DescribeTargetError
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from tree_sitter import Node
-
     from tf_harness_mcp.policies.budget import OutputBudget
     from tf_harness_mcp.settings import Settings
-    from tf_harness_mcp.structure.domain import Block, RequiredProvider
+    from tf_harness_mcp.structure.domain import Block, BlockEntry, RequiredProvider
     from tf_harness_mcp.structure.errors import FileProblem
     from tf_harness_mcp.structure.services import BlockIndexer, FileIndex
     from tf_harness_mcp.tools.describe.domain import (
@@ -48,69 +36,58 @@ if TYPE_CHECKING:
     )
 
 
-@dataclass(slots=True, kw_only=True, frozen=True)
-class NamedBlock:
-    node: Node
-    block: Block
-
-
-def read_named_blocks(index: FileIndex) -> list[NamedBlock]:
-    body = first_child_of_type(index.root, 'body')
-    nodes = get_children(body, 'block')
-    pairs = zip(nodes, index.blocks, strict=True)
-    return [NamedBlock(node=node, block=block) for node, block in pairs]
-
-
 def get_label(block: Block, position: int) -> str:
     return block.labels[position] if len(block.labels) > position else ''
-
-
-def locate_node(node: Node, file: Path) -> Location:
-    return Location(
-        file=str(file), start_line=node.start_point.row + 1, end_line=node.end_point.row + 1
-    )
 
 
 def locate_block(block: Block) -> Location:
     return Location(file=str(block.file), start_line=block.start_line, end_line=block.end_line)
 
 
-def make_variable(item: NamedBlock) -> VariableEntry:
-    attributes = read_attributes(item.node)
-    type_expression = read_value(attributes.get('type'))
+def read_description(entry: BlockEntry) -> str | None:
+    description = entry.get_attribute('description')
+    return description.string if description else None
+
+
+def read_sensitive(entry: BlockEntry) -> bool:
+    sensitive = entry.get_attribute('sensitive')
+    return sensitive.flag if sensitive else False
+
+
+def make_variable(entry: BlockEntry) -> VariableEntry:
+    type_attribute = entry.get_attribute('type')
     return VariableEntry(
-        name=get_label(item.block, 0),
-        type=node_text(type_expression) if type_expression else None,
-        has_default='default' in attributes,
-        description=read_string(read_value(attributes.get('description'))),
-        sensitive=read_flag(read_value(attributes.get('sensitive'))),
-        location=locate_block(item.block),
+        name=get_label(entry.block, 0),
+        type=type_attribute.expression if type_attribute else None,
+        has_default=entry.get_attribute('default') is not None,
+        description=read_description(entry),
+        sensitive=read_sensitive(entry),
+        location=locate_block(entry.block),
     )
 
 
-def make_output(item: NamedBlock) -> OutputEntry:
-    attributes = read_attributes(item.node)
+def make_output(entry: BlockEntry) -> OutputEntry:
     return OutputEntry(
-        name=get_label(item.block, 0),
-        description=read_string(read_value(attributes.get('description'))),
-        sensitive=read_flag(read_value(attributes.get('sensitive'))),
-        location=locate_block(item.block),
+        name=get_label(entry.block, 0),
+        description=read_description(entry),
+        sensitive=read_sensitive(entry),
+        location=locate_block(entry.block),
     )
 
 
-def make_object(item: NamedBlock) -> ObjectEntry:
+def make_object(entry: BlockEntry) -> ObjectEntry:
     return ObjectEntry(
-        type=get_label(item.block, 0),
-        name=get_label(item.block, 1),
-        location=locate_block(item.block),
+        type=get_label(entry.block, 0),
+        name=get_label(entry.block, 1),
+        location=locate_block(entry.block),
     )
 
 
-def make_module_call(item: NamedBlock) -> ModuleCallEntry:
+def make_module_call(entry: BlockEntry) -> ModuleCallEntry:
     return ModuleCallEntry(
-        name=get_label(item.block, 0),
-        source=item.block.source,
-        location=locate_block(item.block),
+        name=get_label(entry.block, 0),
+        source=entry.block.source,
+        location=locate_block(entry.block),
     )
 
 
@@ -125,12 +102,8 @@ def make_provider(provider: RequiredProvider) -> ProviderEntry:
     )
 
 
-def select_required_providers(item: NamedBlock) -> list[ProviderEntry]:
-    return list(map(make_provider, read_required_providers(item.node, item.block.file)))
-
-
-def select_kind(items: list[NamedBlock], kind: str) -> list[NamedBlock]:
-    return [item for item in items if item.block.kind == kind]
+def select_kind(entries: list[BlockEntry], kind: str) -> list[BlockEntry]:
+    return [entry for entry in entries if entry.block.kind == kind]
 
 
 def make_problem(problem: FileProblem) -> ProblemEntry:
@@ -138,8 +111,7 @@ def make_problem(problem: FileProblem) -> ProblemEntry:
 
 
 def summarize_module(path: Path, kind: TargetKind, indexes: list[FileIndex]) -> ModuleSummary:
-    items = [item for index in indexes for item in read_named_blocks(index)]
-    terraform_blocks = select_kind(items, 'terraform')
+    items = [entry for index in indexes for entry in index.entries]
     return ModuleSummary(
         path=str(path),
         kind=kind,
@@ -149,7 +121,9 @@ def summarize_module(path: Path, kind: TargetKind, indexes: list[FileIndex]) -> 
         data_sources=list(map(make_object, select_kind(items, 'data'))),
         module_calls=list(map(make_module_call, select_kind(items, 'module'))),
         required_providers=[
-            provider for item in terraform_blocks for provider in select_required_providers(item)
+            make_provider(provider)
+            for entry in select_kind(items, 'terraform')
+            for provider in entry.required_providers
         ],
         problems=[make_problem(index.problem) for index in indexes if index.problem],
     )
@@ -157,8 +131,13 @@ def summarize_module(path: Path, kind: TargetKind, indexes: list[FileIndex]) -> 
 
 def read_assignments(path: Path, index: FileIndex) -> list[AssignmentEntry]:
     return [
-        AssignmentEntry(name=name, location=locate_node(attribute, path))
-        for name, attribute in read_attributes(index.root).items()
+        AssignmentEntry(
+            name=attribute.name,
+            location=Location(
+                file=str(path), start_line=attribute.start_line, end_line=attribute.end_line
+            ),
+        )
+        for attribute in index.attributes
     ]
 
 

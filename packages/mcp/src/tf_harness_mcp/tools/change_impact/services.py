@@ -14,11 +14,6 @@ from tf_harness_mcp.structure.services import (
     FileIndex,
     build_module_graph,
     create_block_indexer,
-    first_child_of_type,
-    get_children,
-    node_text,
-    read_attributes,
-    read_value,
 )
 from tf_harness_mcp.tools.change_impact.domain import (
     AffectedRoot,
@@ -37,12 +32,10 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-    from tree_sitter import Node
-
     from tf_harness_mcp.policies.budget import OutputBudget
     from tf_harness_mcp.runner.domain import CommandRunner
     from tf_harness_mcp.settings import Settings
-    from tf_harness_mcp.structure.domain import Block, ModuleGraph
+    from tf_harness_mcp.structure.domain import BlockEntry, ModuleGraph
     from tf_harness_mcp.structure.services import BlockIndexer
     from tf_harness_mcp.tools.change_impact.domain import (
         ChangedBlock,
@@ -50,32 +43,29 @@ if TYPE_CHECKING:
         InterfaceChange,
     )
 
-NO_BLOCKS = FileIndex(blocks=(), problem=None)
+NO_BLOCKS = FileIndex(problem=None)
 
 
-def read_expression(node: Node, name: str) -> str | None:
-    expression = read_value(read_attributes(node).get(name))
-    return normalize_expression(node_text(expression)) if expression else None
+def read_expression(entry: BlockEntry, name: str) -> str | None:
+    attribute = entry.get_attribute(name)
+    return normalize_expression(attribute.expression) if attribute else None
 
 
-def read_variable(node: Node) -> Variable:
-    return Variable(type=read_expression(node, 'type'), default=read_expression(node, 'default'))
-
-
-def pair_blocks(index: FileIndex) -> list[tuple[Node, Block]]:
-    body = first_child_of_type(index.root, 'body')
-    return list(zip(get_children(body, 'block'), index.blocks, strict=True))
+def read_variable(entry: BlockEntry) -> Variable:
+    return Variable(type=read_expression(entry, 'type'), default=read_expression(entry, 'default'))
 
 
 def read_interface(indexes: Iterable[FileIndex]) -> ModuleInterface:
-    pairs = [pair for index in indexes for pair in pair_blocks(index) if pair[1].labels]
+    entries = [entry for index in indexes for entry in index.entries if entry.block.labels]
     return ModuleInterface(
         variables={
-            block.labels[0]: read_variable(node)
-            for node, block in pairs
-            if block.kind == 'variable'
+            entry.block.labels[0]: read_variable(entry)
+            for entry in entries
+            if entry.block.kind == 'variable'
         },
-        outputs=frozenset(block.labels[0] for _, block in pairs if block.kind == 'output'),
+        outputs=frozenset(
+            entry.block.labels[0] for entry in entries if entry.block.kind == 'output'
+        ),
     )
 
 

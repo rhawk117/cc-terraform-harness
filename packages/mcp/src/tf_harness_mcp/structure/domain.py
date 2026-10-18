@@ -30,6 +30,26 @@ class RequiredProvider:
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
+class Attribute:
+    name: str
+    expression: str
+    string: str | None
+    flag: bool
+    start_line: int
+    end_line: int
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
+class BlockEntry:
+    block: Block
+    attributes: tuple[Attribute, ...]
+    required_providers: tuple[RequiredProvider, ...] = ()
+
+    def get_attribute(self, name: str) -> Attribute | None:
+        return next((attribute for attribute in self.attributes if attribute.name == name), None)
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
 class ModuleIndex:
     directory: Path
     blocks: tuple[Block, ...]

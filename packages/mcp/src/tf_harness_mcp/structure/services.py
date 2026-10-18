@@ -10,7 +10,9 @@ from tree_sitter import Language, Parser
 
 from tf_harness_mcp.policies.containment import PathContainmentPolicy
 from tf_harness_mcp.structure.domain import (
+    Attribute,
     Block,
+    BlockEntry,
     ModuleGraph,
     ModuleIndex,
     ModuleNode,
@@ -108,34 +110,52 @@ def read_label(node: Node) -> str:
     return text.strip('"') if node.type == 'string_lit' else text
 
 
-def read_literal_source(block: Node) -> str | None:
-    body = first_child_of_type(block, 'body')
-    attributes = (child for child in (body.children if body else ()) if child.type == 'attribute')
-    attribute = next((a for a in attributes if node_text(a.children[0]) == 'source'), None)
-    expression = first_child_of_type(attribute, 'expression')
-    literal = first_child_of_type(expression, 'literal_value')
-    string = first_child_of_type(literal, 'string_lit')
-    return read_label(string) if string else None
+def read_attribute(name: str, attribute: Node) -> Attribute:
+    expression = read_value(attribute)
+    return Attribute(
+        name=name,
+        expression=node_text(expression) if expression else '',
+        string=read_string(expression),
+        flag=read_flag(expression),
+        start_line=attribute.start_point.row + 1,
+        end_line=attribute.end_point.row + 1,
+    )
 
 
-def read_block(block: Node, file: Path) -> Block:
+def read_attribute_values(container: Node | None) -> tuple[Attribute, ...]:
+    return tuple(read_attribute(name, node) for name, node in read_attributes(container).items())
+
+
+def read_block(block: Node, file: Path, attributes: tuple[Attribute, ...]) -> Block:
     kind = node_text(block.children[0])
     labels = tuple(read_label(child) for child in block.children[1:] if child.type in LABEL_TYPES)
+    source = next((a.string for a in attributes if a.name == 'source'), None)
     return Block(
         kind=kind,
         labels=labels,
         file=file,
         start_line=block.start_point.row + 1,
         end_line=block.end_point.row + 1,
-        source=read_literal_source(block) if kind == 'module' else None,
+        source=source if kind == 'module' else None,
     )
+
+
+def read_block_entry(node: Node, file: Path) -> BlockEntry:
+    attributes = read_attribute_values(node)
+    block = read_block(node, file, attributes)
+    providers = read_required_providers(node, file) if block.kind == 'terraform' else ()
+    return BlockEntry(block=block, attributes=attributes, required_providers=providers)
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
 class FileIndex:
-    blocks: tuple[Block, ...]
     problem: FileProblem | None
-    root: Node | None = None
+    entries: tuple[BlockEntry, ...] = ()
+    attributes: tuple[Attribute, ...] = ()
+
+    @property
+    def blocks(self) -> tuple[Block, ...]:
+        return tuple(entry.block for entry in self.entries)
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -153,7 +173,7 @@ class BlockIndexer:
         try:
             content = path.read_bytes()
         except OSError:
-            return FileIndex(blocks=(), problem=UnreadableFileError(path=path))
+            return FileIndex(problem=UnreadableFileError(path=path))
 
         return self.index_content(content, path)
 
@@ -163,12 +183,13 @@ class BlockIndexer:
     def index_content(self, content: bytes, path: Path) -> FileIndex:
         tree = self.parser.parse(content)
         if tree.root_node.has_error:
-            return FileIndex(blocks=(), problem=HclSyntaxError(path=path))
+            return FileIndex(problem=HclSyntaxError(path=path))
 
         body = first_child_of_type(tree.root_node, 'body')
         nodes = (child for child in (body.children if body else ()) if child.type == 'block')
-        blocks = tuple(read_block(node, path) for node in nodes)
-        return FileIndex(blocks=blocks, problem=None, root=tree.root_node)
+        entries = tuple(read_block_entry(node, path) for node in nodes)
+        attributes = read_attribute_values(tree.root_node)
+        return FileIndex(entries=entries, attributes=attributes, problem=None)
 
     def index_module(self, directory: Path) -> ModuleIndex:
         files = tuple(map(self.index_file, self.select_files(directory)))

@@ -1,24 +1,13 @@
 from typing import TYPE_CHECKING
 
 import pytest
-from tf_harness_mcp.structure.services import (
-    create_block_indexer,
-    first_child_of_type,
-    get_children,
-    node_text,
-    read_attributes,
-    read_flag,
-    read_object_fields,
-    read_required_providers,
-    read_string,
-    read_value,
-)
+from tf_harness_mcp.structure.services import create_block_indexer
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from tf_harness_mcp.structure.domain import RequiredProvider
-    from tree_sitter import Node
+    from tf_harness_mcp.structure.domain import BlockEntry
+    from tf_harness_mcp.structure.services import FileIndex
 
 pytestmark = pytest.mark.unit
 
@@ -54,75 +43,78 @@ def tf_file(project_root: Path) -> Path:
 
 
 @pytest.fixture
-def root(project_root: Path, tf_file: Path) -> Node:
-    indexed = create_block_indexer(project_root).index_file(tf_file)
-    assert indexed.root is not None
-    return indexed.root
+def index(project_root: Path, tf_file: Path) -> FileIndex:
+    return create_block_indexer(project_root).index_file(tf_file)
 
 
-def find_block(root: Node, kind: str) -> Node:
-    blocks = get_children(first_child_of_type(root, 'body'), 'block')
-    return next(block for block in blocks if node_text(block.children[0]) == kind)
+def find_entry(index: FileIndex, kind: str) -> BlockEntry:
+    return next(entry for entry in index.entries if entry.block.kind == kind)
 
 
-def find_variable_value(root: Node, name: str) -> Node | None:
-    attributes = read_attributes(find_block(root, 'variable'))
-    return read_value(attributes.get(name))
+class TestAttributes:
+    def test_attributes_are_listed_in_source_order(self, index: FileIndex) -> None:
+        names = [attribute.name for attribute in find_entry(index, 'variable').attributes]
 
+        assert names == ['description', 'sensitive', 'default', 'settings', 'count_hint']
 
-class TestValueReaders:
-    def test_attributes_are_keyed_by_name(self, root: Node) -> None:
-        attributes = read_attributes(find_block(root, 'variable'))
+    def test_attribute_carries_its_line_range(self, index: FileIndex) -> None:
+        attribute = find_entry(index, 'variable').get_attribute('default')
 
-        assert list(attributes) == [
-            'description',
-            'sensitive',
-            'default',
-            'settings',
-            'count_hint',
-        ]
+        assert attribute is not None
+        assert (attribute.start_line, attribute.end_line) == (15, 17)
 
-    def test_attributes_of_nothing_are_empty(self) -> None:
-        assert read_attributes(None) == {}
+    def test_missing_attribute_is_none(self, index: FileIndex) -> None:
+        assert find_entry(index, 'variable').get_attribute('type') is None
 
-    def test_quoted_string_is_read(self, root: Node) -> None:
-        value = find_variable_value(root, 'description')
+    def test_expression_is_the_raw_source_text(self, index: FileIndex) -> None:
+        attribute = find_entry(index, 'variable').get_attribute('settings')
 
-        assert read_string(value) == 'Where to deploy'
+        assert attribute is not None
+        assert attribute.expression == '{ first = "one", second = 2 }'
 
-    def test_heredoc_is_read_and_stripped(self, root: Node) -> None:
-        value = find_variable_value(root, 'default')
+    def test_quoted_string_is_read(self, index: FileIndex) -> None:
+        attribute = find_entry(index, 'variable').get_attribute('description')
 
-        assert read_string(value) == 'hello'
+        assert attribute is not None
+        assert attribute.string == 'Where to deploy'
 
-    def test_number_is_not_a_string(self, root: Node) -> None:
-        value = find_variable_value(root, 'count_hint')
+    def test_heredoc_is_read_and_stripped(self, index: FileIndex) -> None:
+        attribute = find_entry(index, 'variable').get_attribute('default')
 
-        assert read_string(value) is None
+        assert attribute is not None
+        assert attribute.string == 'hello'
 
-    def test_flag_reads_true(self, root: Node) -> None:
-        assert read_flag(find_variable_value(root, 'sensitive'))
+    def test_number_is_not_a_string(self, index: FileIndex) -> None:
+        attribute = find_entry(index, 'variable').get_attribute('count_hint')
 
-    def test_flag_of_a_string_is_false(self, root: Node) -> None:
-        assert not read_flag(find_variable_value(root, 'description'))
+        assert attribute is not None
+        assert attribute.string is None
 
-    def test_object_fields_are_keyed_by_name(self, root: Node) -> None:
-        fields = read_object_fields(find_variable_value(root, 'settings'))
+    def test_flag_reads_true(self, index: FileIndex) -> None:
+        attribute = find_entry(index, 'variable').get_attribute('sensitive')
 
-        assert {name: read_string(node) for name, node in fields.items()} == {
-            'first': 'one',
-            'second': None,
-        }
+        assert attribute is not None
+        assert attribute.flag
 
-    def test_object_fields_of_a_string_are_empty(self, root: Node) -> None:
-        assert read_object_fields(find_variable_value(root, 'description')) == {}
+    def test_flag_of_a_string_is_false(self, index: FileIndex) -> None:
+        attribute = find_entry(index, 'variable').get_attribute('description')
+
+        assert attribute is not None
+        assert not attribute.flag
+
+    def test_top_level_attributes_are_indexed(self, project_root: Path) -> None:
+        indexer = create_block_indexer(project_root)
+
+        index = indexer.index_text('region = "eu"\nzones = 3\n', project_root.joinpath('a.tfvars'))
+
+        assert [(a.name, a.string) for a in index.attributes] == [('region', 'eu'), ('zones', None)]
 
 
 class TestRequiredProviders:
     def test_required_providers_carry_name_source_version_and_location(
-        self, root: Node, tf_file: Path
+        self, index: FileIndex
     ) -> None:
-        providers = read_required_providers(find_block(root, 'terraform'), tf_file)
+        providers = find_entry(index, 'terraform').required_providers
 
         summary = [(p.local_name, p.source, p.version, p.start_line, p.end_line) for p in providers]
         assert summary == [
@@ -131,9 +123,10 @@ class TestRequiredProviders:
             ('bare', None, None, 8, 8),
         ]
 
-    def test_required_providers_record_their_file(self, root: Node, tf_file: Path) -> None:
-        providers: tuple[RequiredProvider, ...] = read_required_providers(
-            find_block(root, 'terraform'), tf_file
-        )
+    def test_required_providers_record_their_file(self, index: FileIndex, tf_file: Path) -> None:
+        providers = find_entry(index, 'terraform').required_providers
 
         assert {provider.file for provider in providers} == {tf_file}
+
+    def test_only_terraform_blocks_carry_required_providers(self, index: FileIndex) -> None:
+        assert find_entry(index, 'variable').required_providers == ()

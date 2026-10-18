@@ -15,12 +15,7 @@ from tf_harness_mcp.provider_schemas.domain import (  # noqa: TC001 - the MCP SD
     SchemaRequest,
 )
 from tf_harness_mcp.provider_schemas.services import create_provider_schema_service
-from tf_harness_mcp.structure.services import (
-    create_block_indexer,
-    first_child_of_type,
-    get_children,
-    read_required_providers,
-)
+from tf_harness_mcp.structure.services import create_block_indexer
 from tf_harness_mcp.tools.provider_schema.domain import (
     AttributeEntry,
     BlockSummary,
@@ -38,15 +33,13 @@ from tf_harness_mcp.tools.provider_schema.policy import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from tree_sitter import Node
-
     from tf_harness_mcp.policies.budget import OutputBudget
     from tf_harness_mcp.provider_schemas.domain import JsonObject
     from tf_harness_mcp.provider_schemas.services import ProviderSchemaService
     from tf_harness_mcp.runner.domain import CommandRunner
     from tf_harness_mcp.settings import Settings
     from tf_harness_mcp.structure.domain import RequiredProvider
-    from tf_harness_mcp.structure.services import BlockIndexer, FileIndex
+    from tf_harness_mcp.structure.services import BlockIndexer
 
 type RequiredProviders = dict[str, RequiredProvider]
 
@@ -137,19 +130,9 @@ def find_level(level: JsonObject, segments: tuple[str, ...]) -> JsonObject | Non
     return find_level(child, segments[1:])
 
 
-def read_terraform_nodes(index: FileIndex) -> list[Node]:
-    body = first_child_of_type(index.root, 'body')
-    pairs = zip(get_children(body, 'block'), index.blocks, strict=True)
-    return [node for node, block in pairs if block.kind == 'terraform']
-
-
 def read_file_providers(indexer: BlockIndexer, path: Path) -> list[RequiredProvider]:
     index = indexer.index_file(path)
-    return [
-        provider
-        for node in read_terraform_nodes(index)
-        for provider in read_required_providers(node, path)
-    ]
+    return [provider for entry in index.entries for provider in entry.required_providers]
 
 
 def read_declared_providers(indexer: BlockIndexer, module: Path) -> RequiredProviders:

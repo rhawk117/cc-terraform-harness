@@ -7,21 +7,10 @@ from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 
 from tf_harness_mcp.provider_schemas.errors import LockFileMissingError, SchemaCacheWriteError
-from tf_harness_mcp.structure.services import (
-    create_block_indexer,
-    first_child_of_type,
-    get_children,
-    node_text,
-    read_attributes,
-    read_label,
-    read_string,
-    read_value,
-)
+from tf_harness_mcp.structure.services import create_block_indexer
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-
-    from tree_sitter import Node
 
     from tf_harness_mcp.provider_schemas.domain import (
         JsonObject,
@@ -31,6 +20,7 @@ if TYPE_CHECKING:
         StoredSchema,
     )
     from tf_harness_mcp.provider_schemas.errors import LockFileProblem
+    from tf_harness_mcp.structure.services import FileIndex
 
 LOCK_FILE_NAME = '.terraform.lock.hcl'
 STAGING_PREFIX = '.partial-'
@@ -41,20 +31,16 @@ def lock_file_path(module: Path) -> Path:
     return module.joinpath(LOCK_FILE_NAME)
 
 
-def read_string_attribute(block: Node, name: str) -> str | None:
-    return read_string(read_value(read_attributes(block).get(name)))
-
-
-def read_provider_versions(root: Node) -> LockedVersions:
-    blocks = get_children(first_child_of_type(root, 'body'), 'block')
-    providers = [block for block in blocks if node_text(block.children[0]) == 'provider']
-    labelled = {first_child_of_type(block, 'string_lit'): block for block in providers}
-    versions = {
-        read_label(label): read_string_attribute(block, 'version')
-        for label, block in labelled.items()
-        if label
+def read_provider_versions(index: FileIndex) -> LockedVersions:
+    entries = [
+        entry for entry in index.entries if entry.block.kind == 'provider' and entry.block.labels
+    ]
+    versions = {entry.block.labels[0]: entry.get_attribute('version') for entry in entries}
+    return {
+        address: attribute.string
+        for address, attribute in versions.items()
+        if attribute and attribute.string is not None
     }
-    return {address: version for address, version in versions.items() if version is not None}
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -69,10 +55,10 @@ def read_lock_file(module: Path) -> LockFileRead:
         return LockFileRead(versions={}, problem=LockFileMissingError(path=path))
 
     indexed = create_block_indexer(module).index_file(path)
-    if indexed.problem or indexed.root is None:
+    if indexed.problem:
         return LockFileRead(versions={}, problem=indexed.problem)
 
-    return LockFileRead(versions=read_provider_versions(indexed.root))
+    return LockFileRead(versions=read_provider_versions(indexed))
 
 
 def schema_relative_path(kind: SchemaKind, type_name: str | None) -> Path:
