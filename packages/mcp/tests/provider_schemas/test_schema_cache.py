@@ -63,7 +63,7 @@ class TestMiss:
 
         schema = await harness.service.lookup(harness.request_for('resource', 'aws_instance'))
 
-        assert schema == expected
+        assert schema.document == expected
 
     async def test_returns_data_source_and_provider_schemas(self, harness: CacheHarness) -> None:
         aws = harness.fixture_output()['provider_schemas'][AWS]
@@ -71,8 +71,8 @@ class TestMiss:
         data_source = await harness.service.lookup(harness.request_for('data_source', 'aws_ami'))
         provider = await harness.service.lookup(harness.request_for('provider', None))
 
-        assert data_source == aws['data_source_schemas']['aws_ami']
-        assert provider == aws['provider']
+        assert data_source.document == aws['data_source_schemas']['aws_ami']
+        assert provider.document == aws['provider']
 
     async def test_leaves_no_staging_directory_behind(self, harness: CacheHarness) -> None:
         await harness.service.lookup(harness.request_for('provider', None))
@@ -102,7 +102,7 @@ class TestHit:
 
         for kind, type_name in cached:
             schema = await harness.service.lookup(harness.request_for(kind, type_name))
-            assert isinstance(schema, dict)
+            assert schema.release == ProviderRelease(address=AWS, version='6.69.1')
 
         assert len(harness.runner.calls) == 1
 
@@ -118,7 +118,7 @@ class TestHit:
             harness.request_for('resource', 'aws_instance', module=other)
         )
 
-        assert isinstance(schema, dict)
+        assert schema.release == ProviderRelease(address=AWS, version='6.69.1')
         assert len(harness.runner.calls) == 1
 
     async def test_another_version_is_a_miss(self, harness: CacheHarness) -> None:
@@ -127,7 +127,7 @@ class TestHit:
 
         schema = await harness.service.lookup(harness.request_for('resource', 'aws_instance'))
 
-        assert isinstance(schema, dict)
+        assert schema.release == ProviderRelease(address=AWS, version='6.70.0')
         assert len(harness.runner.calls) == 2
         assert harness.stored_files(harness.release_dir(AWS, '6.70.0')) == AWS_FILES
 
@@ -136,9 +136,10 @@ class TestHit:
     ) -> None:
         await harness.service.lookup(harness.request_for('provider', None))
 
-        problem = await harness.service.lookup(harness.request_for('resource', 'aws_nope'))
+        with pytest.raises(SchemaTypeNotFoundError) as raised:
+            await harness.service.lookup(harness.request_for('resource', 'aws_nope'))
 
-        assert isinstance(problem, SchemaTypeNotFoundError)
+        problem = raised.value
         assert problem.release == ProviderRelease(address=AWS, version='6.69.1')
         assert len(harness.runner.calls) == 1
 
@@ -147,25 +148,24 @@ class TestReportedConditions:
     async def test_missing_lock_file(self, harness: CacheHarness) -> None:
         harness.module.joinpath('.terraform.lock.hcl').unlink()
 
-        problem = await harness.service.lookup(harness.request_for('provider', None))
-
-        assert isinstance(problem, LockFileMissingError)
+        with pytest.raises(LockFileMissingError):
+            await harness.service.lookup(harness.request_for('provider', None))
         assert harness.runner.calls == []
 
     async def test_unparseable_lock_file(self, harness: CacheHarness) -> None:
         harness.lock('provider "x" {')
 
-        problem = await harness.service.lookup(harness.request_for('provider', None))
-
-        assert isinstance(problem, HclSyntaxError)
+        with pytest.raises(HclSyntaxError):
+            await harness.service.lookup(harness.request_for('provider', None))
         assert harness.runner.calls == []
 
     async def test_provider_absent_from_the_lock_file(self, harness: CacheHarness) -> None:
         harness.lock(harness.lock_text(null='3.3.2'))
 
-        problem = await harness.service.lookup(harness.request_for('provider', None))
+        with pytest.raises(ProviderNotLockedError) as raised:
+            await harness.service.lookup(harness.request_for('provider', None))
 
-        assert isinstance(problem, ProviderNotLockedError)
+        problem = raised.value
         assert problem.address == AWS
         assert harness.runner.calls == []
 
@@ -173,9 +173,10 @@ class TestReportedConditions:
         stderr = 'Inconsistent dependency lock file\nrun: terraform init'
         harness.runner.script(SCHEMA_ARGV, CommandResult(returncode=1, stdout='', stderr=stderr))
 
-        problem = await harness.service.lookup(harness.request_for('provider', None))
+        with pytest.raises(SchemaRunFailedError) as raised:
+            await harness.service.lookup(harness.request_for('provider', None))
 
-        assert isinstance(problem, SchemaRunFailedError)
+        problem = raised.value
         assert problem.returncode == 1
         assert 'terraform init' in problem.stderr
         assert not harness.cache_dir.exists()
@@ -183,29 +184,25 @@ class TestReportedConditions:
     async def test_missing_terraform_binary(self, harness: CacheHarness) -> None:
         harness.runner.script_missing_binary(SCHEMA_ARGV)
 
-        problem = await harness.service.lookup(harness.request_for('provider', None))
-
-        assert isinstance(problem, CommandNotFoundError)
+        with pytest.raises(CommandNotFoundError):
+            await harness.service.lookup(harness.request_for('provider', None))
 
     async def test_output_that_is_not_the_expected_json(self, harness: CacheHarness) -> None:
         harness.runner.script(SCHEMA_ARGV, CommandResult(returncode=0, stdout='[1]', stderr=''))
 
-        problem = await harness.service.lookup(harness.request_for('provider', None))
-
-        assert isinstance(problem, SchemaOutputInvalidError)
+        with pytest.raises(SchemaOutputInvalidError):
+            await harness.service.lookup(harness.request_for('provider', None))
 
     async def test_locked_provider_missing_from_the_output(self, harness: CacheHarness) -> None:
         output = harness.fixture_output()
         del output['provider_schemas'][AWS]
         harness.script_output(output)
 
-        problem = await harness.service.lookup(harness.request_for('provider', None))
-
-        assert isinstance(problem, ProviderNotInSchemaOutputError)
+        with pytest.raises(ProviderNotInSchemaOutputError):
+            await harness.service.lookup(harness.request_for('provider', None))
 
     async def test_cache_directory_that_cannot_be_written(self, harness: CacheHarness) -> None:
         harness.cache_dir.write_text('a file where the cache directory should be')
 
-        problem = await harness.service.lookup(harness.request_for('provider', None))
-
-        assert isinstance(problem, SchemaCacheWriteError)
+        with pytest.raises(SchemaCacheWriteError):
+            await harness.service.lookup(harness.request_for('provider', None))

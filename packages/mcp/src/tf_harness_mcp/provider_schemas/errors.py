@@ -3,7 +3,6 @@
 from typing import TYPE_CHECKING
 
 from tf_harness_mcp.errors import HarnessError
-from tf_harness_mcp.runner.errors import CommandNotFoundError, CommandTimeoutError
 from tf_harness_mcp.structure.errors import FileProblem
 
 if TYPE_CHECKING:
@@ -81,18 +80,3 @@ class SchemaCacheWriteError(HarnessError):
 
 
 type LockFileProblem = FileProblem | LockFileMissingError
-
-type SchemaProblem = (
-    InvalidProviderAddressError
-    | InvalidProviderVersionError
-    | InvalidTypeNameError
-    | LockFileProblem
-    | ProviderNotLockedError
-    | SchemaRunFailedError
-    | SchemaOutputInvalidError
-    | ProviderNotInSchemaOutputError
-    | SchemaTypeNotFoundError
-    | SchemaCacheWriteError
-    | CommandNotFoundError
-    | CommandTimeoutError
-)

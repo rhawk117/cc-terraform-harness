@@ -35,9 +35,8 @@ class TestPathGuard:
     ) -> None:
         request = SchemaRequest(module=harness.module, address=address, kind='provider')
 
-        problem = await harness.service.lookup(request)
-
-        assert isinstance(problem, InvalidProviderAddressError)
+        with pytest.raises(InvalidProviderAddressError):
+            await harness.service.lookup(request)
         assert harness.runner.calls == []
         assert not harness.cache_dir.exists()
 
@@ -45,9 +44,8 @@ class TestPathGuard:
     async def test_type_name_outside_the_form_builds_no_path(
         self, harness: CacheHarness, type_name: str
     ) -> None:
-        problem = await harness.service.lookup(harness.request_for('resource', type_name))
-
-        assert isinstance(problem, InvalidTypeNameError)
+        with pytest.raises(InvalidTypeNameError):
+            await harness.service.lookup(harness.request_for('resource', type_name))
         assert harness.runner.calls == []
         assert not harness.cache_dir.exists()
 
@@ -56,9 +54,8 @@ class TestPathGuard:
     ) -> None:
         harness.lock(harness.lock_text(aws='../../escape'))
 
-        problem = await harness.service.lookup(harness.request_for('provider', None))
-
-        assert isinstance(problem, InvalidProviderVersionError)
+        with pytest.raises(InvalidProviderVersionError):
+            await harness.service.lookup(harness.request_for('provider', None))
         assert harness.runner.calls == []
         assert not harness.cache_dir.exists()
 

@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from tf_harness_mcp.provider_schemas.domain import ProviderRelease, StoredSchema
+from tf_harness_mcp.provider_schemas.domain import LockedSchema, ProviderRelease, StoredSchema
 from tf_harness_mcp.provider_schemas.errors import (
     ProviderNotInSchemaOutputError,
     ProviderNotLockedError,
@@ -20,7 +20,6 @@ from tf_harness_mcp.provider_schemas.policy import (
 )
 from tf_harness_mcp.provider_schemas.store import SchemaStore, lock_file_path, read_lock_file
 from tf_harness_mcp.runner.domain import Command
-from tf_harness_mcp.runner.errors import CommandNotFoundError, CommandTimeoutError
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -33,7 +32,6 @@ if TYPE_CHECKING:
         SchemaKind,
         SchemaRequest,
     )
-    from tf_harness_mcp.provider_schemas.errors import SchemaCacheWriteError, SchemaProblem
     from tf_harness_mcp.runner.domain import CommandRunner
 
 SCHEMA_ARGV = ('terraform', 'providers', 'schema', '-json', '-no-color')
@@ -91,72 +89,72 @@ def select_releases(providers: JsonObject, versions: LockedVersions) -> list[Pro
     ]
 
 
+def read_locked_versions(module: Path) -> LockedVersions:
+    locked = read_lock_file(module)
+    if locked.problem:
+        raise locked.problem
+
+    return locked.versions
+
+
+def resolve_release(request: SchemaRequest, versions: LockedVersions) -> ProviderRelease:
+    version = versions.get(request.address)
+    if version is None:
+        raise ProviderNotLockedError(address=request.address, path=lock_file_path(request.module))
+
+    if problem := ProviderVersionPolicy(version=version).get_version_problem():
+        raise problem
+
+    return ProviderRelease(address=request.address, version=version)
+
+
 @dataclass(slots=True, kw_only=True, frozen=True)
 class ProviderSchemaService:
     runner: CommandRunner
     store: SchemaStore
     timeout_seconds: float
 
-    async def lookup(self, request: SchemaRequest) -> JsonObject | SchemaProblem:
+    async def lookup(self, request: SchemaRequest) -> LockedSchema:
         if problem := SchemaRequestPolicy(request=request).get_request_problem():
-            return problem
+            raise problem
 
-        locked = read_lock_file(request.module)
-        if locked.problem:
-            return locked.problem
+        versions = read_locked_versions(request.module)
+        release = resolve_release(request, versions)
+        if not self.store.has_release(release):
+            await self.fill(request.module, versions)
 
-        version = locked.versions.get(request.address)
-        if version is None:
-            return ProviderNotLockedError(
-                address=request.address, path=lock_file_path(request.module)
-            )
+        return LockedSchema(release=release, document=self.read(release, request))
 
-        if problem := ProviderVersionPolicy(version=version).get_version_problem():
-            return problem
-
-        release = ProviderRelease(address=request.address, version=version)
-        if not self.store.has_release(release) and (
-            problem := await self.fill(request.module, locked.versions)
-        ):
-            return problem
-
-        return self.read(release, request)
-
-    async def fill(self, module: Path, versions: LockedVersions) -> SchemaProblem | None:
+    async def fill(self, module: Path, versions: LockedVersions) -> None:
         command = Command(argv=SCHEMA_ARGV, cwd=module)
-        try:
-            result = await self.runner.run(command, self.timeout_seconds)
-        except (CommandNotFoundError, CommandTimeoutError) as error:
-            return error
-
+        result = await self.runner.run(command, self.timeout_seconds)
         if result.returncode != 0:
             stderr = result.stderr.strip()[-STDERR_TAIL_CHARS:]
-            return SchemaRunFailedError(returncode=result.returncode, stderr=stderr)
+            raise SchemaRunFailedError(returncode=result.returncode, stderr=stderr)
 
         providers = parse_provider_schemas(result.stdout)
         if providers is None:
-            return SchemaOutputInvalidError()
+            raise SchemaOutputInvalidError
 
-        return self.store_releases(providers, versions)
+        self.store_releases(providers, versions)
 
-    def store_releases(
-        self, providers: JsonObject, versions: LockedVersions
-    ) -> SchemaCacheWriteError | None:
+    def store_releases(self, providers: JsonObject, versions: LockedVersions) -> None:
         releases = select_releases(providers, versions)
-        missing = [release for release in releases if not self.store.has_release(release)]
-        writes = [
-            self.store.write_release(release, select_provider_schemas(providers[release.address]))
-            for release in missing
-        ]
-        return next(filter(None, writes), None)
+        for release in releases:
+            if self.store.has_release(release):
+                continue
 
-    def read(self, release: ProviderRelease, request: SchemaRequest) -> JsonObject | SchemaProblem:
+            schemas = select_provider_schemas(providers[release.address])
+            if problem := self.store.write_release(release, schemas):
+                raise problem
+
+    def read(self, release: ProviderRelease, request: SchemaRequest) -> JsonObject:
         if not self.store.has_release(release):
-            return ProviderNotInSchemaOutputError(address=release.address)
+            raise ProviderNotInSchemaOutputError(address=release.address)
 
         schema = self.store.read_schema(release, request.kind, request.type_name)
         if schema is None:
-            return SchemaTypeNotFoundError(
+            raise SchemaTypeNotFoundError(
                 release=release, kind=request.kind, type_name=request.type_name
             )
 

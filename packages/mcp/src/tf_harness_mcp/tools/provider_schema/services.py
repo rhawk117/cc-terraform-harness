@@ -8,9 +8,13 @@ from mcp.server.mcpserver.exceptions import ToolError
 from tf_harness_mcp.errors import HarnessError
 from tf_harness_mcp.policies import containment
 from tf_harness_mcp.policies.budget import create_output_budget
-from tf_harness_mcp.provider_schemas.domain import SchemaCacheOptions, SchemaKind, SchemaRequest  # noqa: TC001 - the MCP SDK evaluates the tool annotations
+from tf_harness_mcp.provider_schemas.domain import (  # noqa: TC001 - the MCP SDK evaluates the tool annotations
+    LockedSchema,
+    SchemaCacheOptions,
+    SchemaKind,
+    SchemaRequest,
+)
 from tf_harness_mcp.provider_schemas.services import create_provider_schema_service
-from tf_harness_mcp.provider_schemas.store import read_lock_file
 from tf_harness_mcp.structure.services import (
     create_block_indexer,
     first_child_of_type,
@@ -38,13 +42,11 @@ if TYPE_CHECKING:
 
     from tf_harness_mcp.policies.budget import OutputBudget
     from tf_harness_mcp.provider_schemas.domain import JsonObject
-    from tf_harness_mcp.provider_schemas.errors import SchemaProblem
     from tf_harness_mcp.provider_schemas.services import ProviderSchemaService
     from tf_harness_mcp.runner.domain import CommandRunner
     from tf_harness_mcp.settings import Settings
     from tf_harness_mcp.structure.domain import RequiredProvider
     from tf_harness_mcp.structure.services import BlockIndexer, FileIndex
-    from tf_harness_mcp.tools.provider_schema.errors import SchemaLevelProblem
 
 type RequiredProviders = dict[str, RequiredProvider]
 
@@ -94,7 +96,7 @@ def summarize_block_type(name: str, block_type: JsonObject) -> BlockSummary:
     return BlockSummary(
         name=name,
         nesting_mode=block_type['nesting_mode'],
-        min_items=block_type.get('min_items', 0),
+        min_items=block_type.get('min_items'),
         max_items=block_type.get('max_items'),
         attribute_count=len(block.get('attributes', {})),
         block_count=len(block.get('block_types', {})),
@@ -172,6 +174,22 @@ def read_blocks(level: JsonObject) -> list[BlockSummary]:
     ]
 
 
+def create_schema_level(
+    request: LevelRequest, provider: ProviderReference, locked_level: LockedSchema
+) -> SchemaLevel:
+    level = locked_level.document
+    return SchemaLevel(
+        type=request.type_name,
+        kind=request.kind,
+        block=request.block,
+        provider=provider.address,
+        version=locked_level.release.version,
+        constraint=provider.constraint,
+        attributes=read_attributes(level),
+        blocks=read_blocks(level),
+    )
+
+
 @dataclass(slots=True, kw_only=True, frozen=True)
 class ProviderSchemaTool:
     root: Path
@@ -191,7 +209,7 @@ class ProviderSchemaTool:
 
     async def lookup_schema(
         self, request: LevelRequest, provider: ProviderReference
-    ) -> JsonObject | SchemaProblem:
+    ) -> LockedSchema:
         type_name = None if request.kind == 'provider' else request.type_name
         return await self.service.lookup(
             SchemaRequest(
@@ -202,29 +220,19 @@ class ProviderSchemaTool:
             )
         )
 
-    async def read_level(self, request: LevelRequest) -> SchemaLevel | SchemaLevelProblem:
+    async def read_level(self, request: LevelRequest) -> SchemaLevel:
         policy = BlockPathPolicy(block=request.block)
         if problem := policy.get_block_path_problem():
-            return problem
+            raise problem
 
         provider = self.resolve_provider(request)
-        document = await self.lookup_schema(request, provider)
-        if isinstance(document, HarnessError):
-            return document
-
-        level = find_level(document['block'], policy.segments)
+        locked = await self.lookup_schema(request, provider)
+        level = find_level(locked.document['block'], policy.segments)
         if level is None:
-            return BlockPathNotFoundError(type_name=request.type_name, block=request.block)
+            raise BlockPathNotFoundError(type_name=request.type_name, block=request.block)
 
-        return SchemaLevel(
-            type=request.type_name,
-            kind=request.kind,
-            block=request.block,
-            provider=provider.address,
-            version=read_lock_file(request.module).versions[provider.address],
-            constraint=provider.constraint,
-            attributes=read_attributes(level),
-            blocks=read_blocks(level),
+        return create_schema_level(
+            request, provider, LockedSchema(release=locked.release, document=level)
         )
 
     async def provider_schema(  # noqa: PLR0913, PLR0917 - the MCP tool arguments are its schema
@@ -252,11 +260,12 @@ class ProviderSchemaTool:
         except HarnessError as err:
             raise ToolError(str(err)) from err
 
-        result = await self.read_level(
-            LevelRequest(module=module, kind=kind, type_name=type, block=block)
-        )
-        if isinstance(result, HarnessError):
-            raise ToolError(str(result)) from result
+        try:
+            result = await self.read_level(
+                LevelRequest(module=module, kind=kind, type_name=type, block=block)
+            )
+        except HarnessError as err:
+            raise ToolError(str(err)) from err
 
         return self.budget.apply(asdict(result))
 

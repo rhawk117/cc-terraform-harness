@@ -96,7 +96,7 @@ class TestProviderSchemaLevels:
         assert cpu == {
             'name': 'cpu_options',
             'nesting_mode': 'list',
-            'min_items': 0,
+            'min_items': None,
             'max_items': 1,
             'attribute_count': 4,
             'block_count': 0,

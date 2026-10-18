@@ -28,6 +28,12 @@ class ProviderRelease:
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
+class LockedSchema:
+    release: ProviderRelease
+    document: JsonObject
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
 class StoredSchema:
     kind: SchemaKind
     type_name: str | None

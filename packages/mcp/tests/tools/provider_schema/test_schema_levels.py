@@ -13,6 +13,7 @@ from tf_harness_mcp.tools.provider_schema.services import (
     make_attribute,
     render_type,
     summarize_block_type,
+    summarize_nested_type,
 )
 
 if TYPE_CHECKING:
@@ -217,10 +218,16 @@ class TestSummaries:
             block_count=1,
         )
 
-    def test_block_summary_defaults_min_items_to_zero_and_max_to_unbounded(self) -> None:
+    def test_block_summary_defaults_max_to_unbounded(self) -> None:
         summary = summarize_block_type('timeouts', NESTED_LEVEL['block_types']['timeouts'])
 
-        assert (summary.min_items, summary.max_items) == (0, None)
+        assert summary.max_items is None
+
+    def test_both_summaries_default_min_items_to_none(self) -> None:
+        block = summarize_block_type('timeouts', NESTED_LEVEL['block_types']['timeouts'])
+        nested = summarize_nested_type('rules', NESTED_LEVEL['attributes']['rules']['nested_type'])
+
+        assert (block.min_items, nested.min_items) == (None, None)
 
     def test_nested_type_attribute_summarizes_its_attributes(self) -> None:
         entry = make_attribute('rules', NESTED_LEVEL['attributes']['rules'])
