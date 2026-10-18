@@ -14,7 +14,7 @@ class TestCreateServer:
     async def test_in_process_client_initializes(self, client: Client) -> None:
         tools = await client.list_tools()
 
-        assert [tool.name for tool in tools.tools] == ['diagnostics']
+        assert [tool.name for tool in tools.tools] == ['diagnostics', 'plan_digest']
 
     def test_server_is_named_for_the_package(self, server: MCPServer) -> None:
         assert server.name == SERVER_NAME
