@@ -60,7 +60,9 @@ def digest_plan(path: Path, plan: PlanDocument) -> dict[str, Any]:
         'path': str(path),
         'counts': dict(counts),
         'resource_changes': [asdict(change) for change in changes if change.actions != [NO_OP]],
-        'output_changes': {name: out.actions for name, out in plan.output_changes.items()},
+        'output_changes': [
+            {'name': name, 'actions': out.actions} for name, out in plan.output_changes.items()
+        ],
     }
 
 

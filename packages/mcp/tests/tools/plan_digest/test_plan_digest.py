@@ -52,7 +52,7 @@ class TestPlanDigest:
         ]
 
     async def test_lists_output_changes_by_name(self, digest: dict[str, object]) -> None:
-        assert digest['output_changes'] == {'gen': ['update']}
+        assert digest['output_changes'] == [{'name': 'gen', 'actions': ['update']}]
 
     async def test_marks_a_create_before_destroy_replacement(
         self, client: Client, project_root: Path
@@ -111,6 +111,22 @@ class TestPlanDigestWithinBudget:
         assert len(json.dumps(result.structured_content, separators=(',', ':'))) <= 1500
         assert result.structured_content['counts'] == {'create': 200}
         assert result.structured_content['resource_changes_omitted'] > 0
+
+    async def test_drops_whole_outputs_to_the_budget(
+        self, client: Client, project_root: Path
+    ) -> None:
+        outputs = {f'out{index}': {'actions': ['create']} for index in range(200)}
+        path = project_root.joinpath('outputs.json')
+        path.write_text(json.dumps({'planned_values': {}, 'output_changes': outputs}))
+
+        result = await client.call_tool('plan_digest', {'path': str(path)})
+
+        content = result.structured_content
+        assert content is not None
+        assert len(json.dumps(content, separators=(',', ':'))) <= 1500
+        assert content['output_changes_omitted'] > 0
+        assert len(content['output_changes']) + content['output_changes_omitted'] == 200
+        assert all(set(entry) == {'name', 'actions'} for entry in content['output_changes'])
 
 
 @pytest.mark.unit
