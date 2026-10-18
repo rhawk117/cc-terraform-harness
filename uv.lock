@@ -1135,6 +1135,7 @@ name = "tf-harness-mcp"
 version = "0.1.0"
 source = { editable = "packages/mcp" }
 dependencies = [
+    { name = "anyio" },
     { name = "mcp" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -1142,6 +1143,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anyio", specifier = ">=4.15.1" },
     { name = "mcp", specifier = ">=2.3.0" },
     { name = "pydantic", specifier = ">=2.14.1" },
     { name = "pydantic-settings", specifier = ">=2.16.0" },
