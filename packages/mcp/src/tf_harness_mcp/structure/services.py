@@ -8,12 +8,15 @@ from typing import TYPE_CHECKING
 import tree_sitter_hcl
 from tree_sitter import Language, Parser
 
+from tf_harness_mcp.policies.containment import PathContainmentPolicy
 from tf_harness_mcp.structure.domain import Block, ModuleGraph, ModuleIndex, ModuleNode
-from tf_harness_mcp.structure.errors import HclSyntaxError
+from tf_harness_mcp.structure.errors import HclSyntaxError, UnreadableFileError
 from tf_harness_mcp.structure.policy import LocalSourcePolicy
 
 if TYPE_CHECKING:
     from tree_sitter import Node
+
+    from tf_harness_mcp.structure.errors import FileProblem
 
 LABEL_TYPES = frozenset({'string_lit', 'identifier'})
 
@@ -60,15 +63,27 @@ def read_block(block: Node, file: Path) -> Block:
 @dataclass(slots=True, kw_only=True, frozen=True)
 class FileIndex:
     blocks: tuple[Block, ...]
-    problem: HclSyntaxError | None
+    problem: FileProblem | None
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
 class BlockIndexer:
+    root: Path
     parser: Parser
 
+    def is_inside_root(self, path: Path) -> bool:
+        return PathContainmentPolicy(root=self.root, path=path).is_inside_root
+
+    def select_files(self, directory: Path) -> tuple[Path, ...]:
+        return tuple(path for path in sorted(directory.glob('*.tf')) if self.is_inside_root(path))
+
     def index_file(self, path: Path) -> FileIndex:
-        tree = self.parser.parse(path.read_bytes())
+        try:
+            content = path.read_bytes()
+        except OSError:
+            return FileIndex(blocks=(), problem=UnreadableFileError(path=path))
+
+        tree = self.parser.parse(content)
         if tree.root_node.has_error:
             return FileIndex(blocks=(), problem=HclSyntaxError(path=path))
 
@@ -77,7 +92,7 @@ class BlockIndexer:
         return FileIndex(blocks=tuple(read_block(node, path) for node in nodes), problem=None)
 
     def index_module(self, directory: Path) -> ModuleIndex:
-        files = tuple(map(self.index_file, sorted(directory.glob('*.tf'))))
+        files = tuple(map(self.index_file, self.select_files(directory)))
         return ModuleIndex(
             directory=directory,
             blocks=tuple(block for file in files for block in file.blocks),
@@ -85,12 +100,12 @@ class BlockIndexer:
         )
 
 
-def create_block_indexer() -> BlockIndexer:
-    return BlockIndexer(parser=Parser(Language(tree_sitter_hcl.language())))
+def create_block_indexer(root: Path) -> BlockIndexer:
+    return BlockIndexer(root=root, parser=Parser(Language(tree_sitter_hcl.language())))
 
 
-def index_module(directory: Path) -> ModuleIndex:
-    return create_block_indexer().index_module(directory)
+def index_module(root: Path, directory: Path) -> ModuleIndex:
+    return create_block_indexer(root).index_module(directory)
 
 
 def find_module_directories(root: Path) -> tuple[Path, ...]:
@@ -127,5 +142,7 @@ class ModuleGraphBuilder:
 
 
 def build_module_graph(root: Path) -> ModuleGraph:
-    builder = ModuleGraphBuilder(root=root.resolve(), indexer=create_block_indexer())
+    resolved_root = root.resolve()
+    indexer = create_block_indexer(resolved_root)
+    builder = ModuleGraphBuilder(root=resolved_root, indexer=indexer)
     return builder.build()

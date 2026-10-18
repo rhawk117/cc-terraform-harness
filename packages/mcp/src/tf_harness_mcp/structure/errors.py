@@ -14,6 +14,15 @@ class HclSyntaxError(HarnessError):
         super().__init__(f'{path} does not parse as HCL')
 
 
+class UnreadableFileError(HarnessError):
+    def __init__(self, *, path: Path) -> None:
+        self.path = path
+        super().__init__(f'{path} cannot be read as a file')
+
+
+type FileProblem = HclSyntaxError | UnreadableFileError
+
+
 class SourceNotLocalError(HarnessError):
     def __init__(self, *, source: str) -> None:
         self.source = source

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from tf_harness_mcp.structure.errors import HclSyntaxError
+    from tf_harness_mcp.structure.errors import FileProblem
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -23,7 +23,7 @@ class Block:
 class ModuleIndex:
     directory: Path
     blocks: tuple[Block, ...]
-    problems: tuple[HclSyntaxError, ...]
+    problems: tuple[FileProblem, ...]
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)

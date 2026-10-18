@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pytest
-from tf_harness_mcp.structure.errors import HclSyntaxError
+from tf_harness_mcp.structure.errors import HclSyntaxError, UnreadableFileError
 from tf_harness_mcp.structure.services import index_module
 
 if TYPE_CHECKING:
@@ -123,20 +123,21 @@ def top_level_block_cases() -> pytest.MarkDecorator:
     return pytest.mark.parametrize('case', [case.param for case in cases])
 
 
+@pytest.fixture
+def module_dir(project_root: Path) -> Path:
+    project_root.joinpath('main.tf').write_text(MAIN_TF)
+    return project_root
+
+
 class TestBlockIndex:
     @pytest.fixture
-    def module_dir(self, project_root: Path) -> Path:
-        project_root.joinpath('main.tf').write_text(MAIN_TF)
-        return project_root
+    def index(self, project_root: Path, module_dir: Path) -> ModuleIndex:
+        return index_module(project_root, module_dir)
 
     @pytest.fixture
-    def index(self, module_dir: Path) -> ModuleIndex:
-        return index_module(module_dir)
-
-    @pytest.fixture
-    def broken_index(self, module_dir: Path) -> ModuleIndex:
+    def broken_index(self, project_root: Path, module_dir: Path) -> ModuleIndex:
         module_dir.joinpath('broken.tf').write_text(BROKEN_TF)
-        return index_module(module_dir)
+        return index_module(project_root, module_dir)
 
     def find_block(self, index: ModuleIndex, case: BlockCase) -> Block | None:
         matches = (b for b in index.blocks if (b.kind, b.labels) == (case.kind, case.labels))
@@ -175,3 +176,47 @@ class TestBlockIndex:
         files = {block.file for block in broken_index.blocks}
 
         assert files == {module_dir.joinpath('main.tf')}
+
+
+class TestUnreadableFiles:
+    @pytest.fixture
+    def directory_named_tf_index(self, project_root: Path, module_dir: Path) -> ModuleIndex:
+        module_dir.joinpath('stray.tf').mkdir()
+        return index_module(project_root, module_dir)
+
+    @pytest.fixture
+    def dangling_link_index(self, project_root: Path, module_dir: Path) -> ModuleIndex:
+        module_dir.joinpath('dangling.tf').symlink_to(module_dir.joinpath('missing.tf'))
+        return index_module(project_root, module_dir)
+
+    @pytest.fixture
+    def escaping_link_index(
+        self, project_root: Path, module_dir: Path, tmp_path_factory: pytest.TempPathFactory
+    ) -> ModuleIndex:
+        outside = tmp_path_factory.mktemp('outside').joinpath('leak.tf')
+        outside.write_text(BROKEN_TF)
+        module_dir.joinpath('leak.tf').symlink_to(outside)
+        return index_module(project_root, module_dir)
+
+    def test_directory_named_like_a_tf_file_is_reported_with_its_path(
+        self, directory_named_tf_index: ModuleIndex, module_dir: Path
+    ) -> None:
+        problem = directory_named_tf_index.problems[0]
+
+        assert isinstance(problem, UnreadableFileError)
+        assert problem.path == module_dir.joinpath('stray.tf')
+
+    def test_unreadable_file_is_reported_and_other_files_still_index(
+        self, dangling_link_index: ModuleIndex, module_dir: Path
+    ) -> None:
+        problem = dangling_link_index.problems[0]
+
+        assert isinstance(problem, UnreadableFileError)
+        assert problem.path == module_dir.joinpath('dangling.tf')
+        assert len(dangling_link_index.blocks) == 8
+
+    def test_file_whose_real_path_leaves_the_root_is_skipped(
+        self, escaping_link_index: ModuleIndex
+    ) -> None:
+        assert not escaping_link_index.problems
+        assert len(escaping_link_index.blocks) == 8
