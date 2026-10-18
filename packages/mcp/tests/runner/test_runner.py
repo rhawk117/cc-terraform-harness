@@ -2,6 +2,7 @@ import shutil
 import sys
 from typing import TYPE_CHECKING
 
+import anyio
 import pytest
 from tf_harness_mcp.runner.domain import Command
 from tf_harness_mcp.runner.errors import CommandNotAllowedError, CommandTimeoutError
@@ -13,6 +14,21 @@ if TYPE_CHECKING:
     from tf_harness_mcp.runner.domain import CommandRunner
 
 READ_STDIN = 'import sys; print(repr(sys.stdin.read()))'
+RUN_READ_STDIN = f"""
+import sys
+import anyio
+from tf_harness_mcp.runner.domain import Command
+from tf_harness_mcp.runner.policy import ReadOnlyOptions
+from tf_harness_mcp.runner.process import create_command_runner
+
+async def main():
+    options = ReadOnlyOptions(prefixes=((sys.executable, '-c'),))
+    command = Command(argv=(sys.executable, '-c', {READ_STDIN!r}))
+    result = await create_command_runner(options=options).run(command, 10.0)
+    print(result.stdout.strip())
+
+anyio.run(main)
+"""
 PRINT_ENV = 'import os, sys; print(os.environ.get(sys.argv[1], "unset"))'
 
 
@@ -98,10 +114,12 @@ class TestAnyioCommandRunner:
 
         assert (result.returncode, result.stderr) == (3, 'bad')
 
-    async def test_child_stdin_is_closed(self, runner: CommandRunner) -> None:
-        result = await runner.run(python_command(READ_STDIN), self.timeout)
+    async def test_child_stdin_is_closed(self) -> None:
+        server = await anyio.run_process(
+            [sys.executable, '-c', RUN_READ_STDIN], input=b'mcp protocol bytes', check=False
+        )
 
-        assert result.stdout.strip() == "''"
+        assert server.stdout.decode().strip() == "''"
 
     async def test_refuses_command_outside_the_set(self, runner: CommandRunner) -> None:
         with pytest.raises(CommandNotAllowedError):
