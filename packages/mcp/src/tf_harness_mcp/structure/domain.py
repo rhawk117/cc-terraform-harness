@@ -10,6 +10,13 @@ if TYPE_CHECKING:
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
+class Location:
+    file: str
+    start_line: int
+    end_line: int
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
 class Block:
     kind: str
     labels: tuple[str, ...]
@@ -17,6 +24,10 @@ class Block:
     start_line: int
     end_line: int
     source: str | None = None
+
+    @property
+    def location(self) -> Location:
+        return Location(file=str(self.file), start_line=self.start_line, end_line=self.end_line)
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -28,6 +39,10 @@ class RequiredProvider:
     start_line: int
     end_line: int
 
+    @property
+    def location(self) -> Location:
+        return Location(file=str(self.file), start_line=self.start_line, end_line=self.end_line)
+
 
 @dataclass(slots=True, kw_only=True, frozen=True)
 class Attribute:
@@ -35,8 +50,13 @@ class Attribute:
     expression: str
     string: str | None
     flag: bool
+    file: Path
     start_line: int
     end_line: int
+
+    @property
+    def location(self) -> Location:
+        return Location(file=str(self.file), start_line=self.start_line, end_line=self.end_line)
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)

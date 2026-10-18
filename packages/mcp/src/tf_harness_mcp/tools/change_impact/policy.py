@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 
 from tf_harness_mcp.tools.change_impact.domain import ChangedBlock, InterfaceChange, LineRange
 from tf_harness_mcp.tools.change_impact.errors import GitCommandFailedError, InvalidBaseRefError
-from tf_harness_mcp.tools.describe.domain import Location
 
 if TYPE_CHECKING:
     from tf_harness_mcp.runner.domain import CommandResult
@@ -70,13 +69,9 @@ def normalize_expression(text: str) -> str:
     return ' '.join(text.split())
 
 
-def locate_block(block: Block) -> Location:
-    return Location(file=str(block.file), start_line=block.start_line, end_line=block.end_line)
-
-
 def make_block_change(block: Block, status: BlockStatus) -> ChangedBlock:
     return ChangedBlock(
-        kind=block.kind, labels=list(block.labels), status=status, location=locate_block(block)
+        kind=block.kind, labels=list(block.labels), status=status, location=block.location
     )
 
 

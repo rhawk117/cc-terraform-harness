@@ -8,7 +8,6 @@ from tf_harness_mcp.policies.budget import create_output_budget
 from tf_harness_mcp.structure.services import create_block_indexer
 from tf_harness_mcp.tools.describe.domain import (
     AssignmentEntry,
-    Location,
     ModuleCallEntry,
     ModuleSummary,
     ObjectEntry,
@@ -37,10 +36,6 @@ def get_label(block: Block, position: int) -> str:
     return block.labels[position] if len(block.labels) > position else ''
 
 
-def locate_block(block: Block) -> Location:
-    return Location(file=str(block.file), start_line=block.start_line, end_line=block.end_line)
-
-
 def read_description(entry: BlockEntry) -> str | None:
     description = entry.get_attribute('description')
     return description.string if description else None
@@ -59,7 +54,7 @@ def make_variable(entry: BlockEntry) -> VariableEntry:
         has_default=entry.get_attribute('default') is not None,
         description=read_description(entry),
         sensitive=read_sensitive(entry),
-        location=locate_block(entry.block),
+        location=entry.block.location,
     )
 
 
@@ -68,7 +63,7 @@ def make_output(entry: BlockEntry) -> OutputEntry:
         name=get_label(entry.block, 0),
         description=read_description(entry),
         sensitive=read_sensitive(entry),
-        location=locate_block(entry.block),
+        location=entry.block.location,
     )
 
 
@@ -76,7 +71,7 @@ def make_object(entry: BlockEntry) -> ObjectEntry:
     return ObjectEntry(
         type=get_label(entry.block, 0),
         name=get_label(entry.block, 1),
-        location=locate_block(entry.block),
+        location=entry.block.location,
     )
 
 
@@ -84,7 +79,7 @@ def make_module_call(entry: BlockEntry) -> ModuleCallEntry:
     return ModuleCallEntry(
         name=get_label(entry.block, 0),
         source=entry.block.source,
-        location=locate_block(entry.block),
+        location=entry.block.location,
     )
 
 
@@ -93,9 +88,7 @@ def make_provider(provider: RequiredProvider) -> ProviderEntry:
         local_name=provider.local_name,
         source=provider.source,
         version=provider.version,
-        location=Location(
-            file=str(provider.file), start_line=provider.start_line, end_line=provider.end_line
-        ),
+        location=provider.location,
     )
 
 
@@ -126,14 +119,9 @@ def summarize_module(path: Path, kind: TargetKind, indexes: list[FileIndex]) -> 
     )
 
 
-def read_assignments(path: Path, index: FileIndex) -> list[AssignmentEntry]:
+def read_assignments(index: FileIndex) -> list[AssignmentEntry]:
     return [
-        AssignmentEntry(
-            name=attribute.name,
-            location=Location(
-                file=str(path), start_line=attribute.start_line, end_line=attribute.end_line
-            ),
-        )
+        AssignmentEntry(name=attribute.name, location=attribute.location)
         for attribute in index.attributes
     ]
 
@@ -153,7 +141,7 @@ class DescribeTool:
         module = self.indexer.index_module(path.parent)
         declared = {get_label(block, 0) for block in module.blocks if block.kind == 'variable'}
         index = self.indexer.index_file(path)
-        assigned = read_assignments(path, index)
+        assigned = read_assignments(index)
         problems = [index.problem, *module.problems]
         return TfvarsSummary(
             path=str(path),

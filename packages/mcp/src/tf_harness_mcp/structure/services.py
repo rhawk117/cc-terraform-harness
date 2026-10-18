@@ -110,20 +110,22 @@ def read_label(node: Node) -> str:
     return text.strip('"') if node.type == 'string_lit' else text
 
 
-def read_attribute(name: str, attribute: Node) -> Attribute:
+def read_attribute(name: str, attribute: Node, file: Path) -> Attribute:
     expression = read_value(attribute)
     return Attribute(
         name=name,
         expression=node_text(expression) if expression else '',
         string=read_string(expression),
         flag=read_flag(expression),
+        file=file,
         start_line=attribute.start_point.row + 1,
         end_line=attribute.end_point.row + 1,
     )
 
 
-def read_attribute_values(container: Node | None) -> tuple[Attribute, ...]:
-    return tuple(read_attribute(name, node) for name, node in read_attributes(container).items())
+def read_attribute_values(container: Node | None, file: Path) -> tuple[Attribute, ...]:
+    attributes = read_attributes(container)
+    return tuple(read_attribute(name, node, file) for name, node in attributes.items())
 
 
 def read_block(block: Node, file: Path, attributes: tuple[Attribute, ...]) -> Block:
@@ -141,7 +143,7 @@ def read_block(block: Node, file: Path, attributes: tuple[Attribute, ...]) -> Bl
 
 
 def read_block_entry(node: Node, file: Path) -> BlockEntry:
-    attributes = read_attribute_values(node)
+    attributes = read_attribute_values(node, file)
     block = read_block(node, file, attributes)
     providers = read_required_providers(node, file) if block.kind == 'terraform' else ()
     return BlockEntry(block=block, attributes=attributes, required_providers=providers)
@@ -188,7 +190,7 @@ class BlockIndexer:
         body = first_child_of_type(tree.root_node, 'body')
         nodes = (child for child in (body.children if body else ()) if child.type == 'block')
         entries = tuple(read_block_entry(node, path) for node in nodes)
-        attributes = read_attribute_values(tree.root_node)
+        attributes = read_attribute_values(tree.root_node, path)
         return FileIndex(entries=entries, attributes=attributes, problem=None)
 
     def index_module(self, directory: Path) -> ModuleIndex:

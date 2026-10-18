@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
-    from tf_harness_mcp.tools.describe.domain import Location
+    from tf_harness_mcp.structure.domain import Location
 
 type ChangeStatus = Literal['added', 'modified', 'deleted']
 type BlockStatus = Literal['added', 'modified', 'removed']

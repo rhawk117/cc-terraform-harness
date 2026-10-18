@@ -1,16 +1,12 @@
 """Plain values making up the summary describe returns."""
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from tf_harness_mcp.structure.domain import Location
 
 type TargetKind = Literal['module', 'file', 'tfvars']
-
-
-@dataclass(slots=True, kw_only=True, frozen=True)
-class Location:
-    file: str
-    start_line: int
-    end_line: int
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
