@@ -62,11 +62,18 @@ class AffectedRoot:
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
+class ProblemEntry:
+    path: str
+    message: str
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
 class ChangeImpact:
     base_commit: str
     blocks: list[ChangedBlock]
     interface: list[InterfaceChange]
     roots: list[AffectedRoot]
+    problems: list[ProblemEntry]
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)

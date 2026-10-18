@@ -19,14 +19,17 @@ from tf_harness_mcp.tools.change_impact.domain import (
     AffectedRoot,
     ChangeImpact,
     ModuleInterface,
+    ProblemEntry,
     Variable,
 )
+from tf_harness_mcp.tools.change_impact.errors import ChangedFileOutsideRootError
 from tf_harness_mcp.tools.change_impact.policy import (
     BlockChangePolicy,
     InterfacePolicy,
     normalize_expression,
 )
 from tf_harness_mcp.tools.change_impact.repository import GitRepository
+from tf_harness_mcp.tools.diagnostics.errors import DirectoryNotFoundError
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -36,6 +39,7 @@ if TYPE_CHECKING:
     from tf_harness_mcp.runner.domain import CommandRunner
     from tf_harness_mcp.settings import Settings
     from tf_harness_mcp.structure.domain import BlockEntry, ModuleGraph
+    from tf_harness_mcp.structure.errors import FileProblem
     from tf_harness_mcp.structure.services import BlockIndexer
     from tf_harness_mcp.tools.change_impact.domain import (
         ChangedBlock,
@@ -69,6 +73,10 @@ def read_interface(indexes: Iterable[FileIndex]) -> ModuleInterface:
     )
 
 
+def make_problem(problem: FileProblem | ChangedFileOutsideRootError) -> ProblemEntry:
+    return ProblemEntry(path=str(problem.path), message=str(problem))
+
+
 def list_affected_roots(graph: ModuleGraph, directories: Iterable[Path]) -> list[AffectedRoot]:
     return [
         AffectedRoot(root=str(path[0]), module=str(directory), path=list(map(str, path)))
@@ -83,6 +91,7 @@ class ChangeSnapshot:
     path: Path
     base: FileIndex
     current: FileIndex
+    escape: ChangedFileOutsideRootError | None = None
 
     @property
     def directory(self) -> Path:
@@ -108,6 +117,15 @@ class SnapshotReader:
 
     async def read(self, changed: ChangedFile) -> ChangeSnapshot:
         path = self.git.directory.joinpath(changed.path)
+        if not self.indexer.is_inside_root(path):
+            return ChangeSnapshot(
+                changed=changed,
+                path=path,
+                base=NO_BLOCKS,
+                current=NO_BLOCKS,
+                escape=ChangedFileOutsideRootError(path=path),
+            )
+
         current = NO_BLOCKS if changed.status == 'deleted' else self.indexer.index_file(path)
         return ChangeSnapshot(
             changed=changed,
@@ -118,10 +136,16 @@ class SnapshotReader:
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
+class InterfaceComparison:
+    changes: list[InterfaceChange]
+    problems: list[ProblemEntry]
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
 class InterfaceReader:
     indexer: BlockIndexer
 
-    def compare(self, directory: Path, snapshots: list[ChangeSnapshot]) -> list[InterfaceChange]:
+    def compare(self, directory: Path, snapshots: list[ChangeSnapshot]) -> InterfaceComparison:
         changed_paths = {snapshot.path for snapshot in snapshots}
         unchanged = [
             self.indexer.index_file(path)
@@ -130,7 +154,11 @@ class InterfaceReader:
         ]
         base = read_interface([*unchanged, *(snapshot.base for snapshot in snapshots)])
         current = read_interface([*unchanged, *(snapshot.current for snapshot in snapshots)])
-        return InterfacePolicy(module=str(directory), base=base, current=current).list_changes()
+        policy = InterfacePolicy(module=str(directory), base=base, current=current)
+        return InterfaceComparison(
+            changes=policy.list_changes(),
+            problems=[make_problem(index.problem) for index in unchanged if index.problem],
+        )
 
 
 def group_by_module(snapshots: list[ChangeSnapshot]) -> dict[Path, list[ChangeSnapshot]]:
@@ -167,24 +195,34 @@ class ChangeImpactTool:
         reader = SnapshotReader(indexer=self.indexer, git=git, base_commit=changes.base_commit)
         return changes.base_commit, [await reader.read(changed) for changed in changes.files]
 
+    def resolve_directory(self, path: containment.ProjectPath) -> Path:
+        resolved = containment.resolve_project_path(self.root, path)
+        if not resolved.is_dir():
+            raise DirectoryNotFoundError(path=resolved)
+
+        return resolved
+
     async def analyze(self, directory: Path, base_ref: str) -> ChangeImpact:
         git = GitRepository(runner=self.runner, directory=directory)
         base_commit, snapshots = await self.read_snapshots(git, base_ref)
-        if problem := next((snapshot.problem for snapshot in snapshots if snapshot.problem), None):
+        escaped = [snapshot.escape for snapshot in snapshots if snapshot.escape]
+        readable = [snapshot for snapshot in snapshots if not snapshot.escape]
+        if problem := next((snapshot.problem for snapshot in readable if snapshot.problem), None):
             raise problem
 
-        modules = group_by_module(snapshots)
+        modules = group_by_module(readable)
         reader = InterfaceReader(indexer=self.indexer)
+        comparisons = [reader.compare(module, members) for module, members in modules.items()]
         graph = build_module_graph(self.root)
         return ChangeImpact(
             base_commit=base_commit,
-            blocks=list_changed_blocks(snapshots),
-            interface=[
-                change
-                for module, members in modules.items()
-                for change in reader.compare(module, members)
-            ],
+            blocks=list_changed_blocks(readable),
+            interface=[change for comparison in comparisons for change in comparison.changes],
             roots=list_affected_roots(graph, modules),
+            problems=[
+                *map(make_problem, escaped),
+                *(problem for comparison in comparisons for problem in comparison.problems),
+            ],
         )
 
     async def change_impact(
@@ -202,7 +240,7 @@ class ChangeImpactTool:
         The path is relative to the project root or absolute inside it.
         """
         try:
-            directory = containment.resolve_project_path(self.root, path)
+            directory = self.resolve_directory(path)
             result = await self.analyze(directory, base_ref)
         except HarnessError as err:
             raise ToolError(str(err)) from err

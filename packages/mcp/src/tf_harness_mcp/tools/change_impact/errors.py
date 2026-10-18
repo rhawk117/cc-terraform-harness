@@ -1,6 +1,11 @@
 """Problems the change_impact git layer reports."""
 
+from typing import TYPE_CHECKING
+
 from tf_harness_mcp.errors import HarnessError
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class InvalidBaseRefError(HarnessError):
@@ -21,6 +26,12 @@ class GitCommandFailedError(HarnessError):
         self.returncode = returncode
         self.stderr = stderr
         super().__init__(f'git exited with {returncode}: {command}: {stderr.strip()}')
+
+
+class ChangedFileOutsideRootError(HarnessError):
+    def __init__(self, *, path: Path) -> None:
+        self.path = path
+        super().__init__(f'{path} resolves outside the project root and was not read')
 
 
 type ChangeSetProblem = InvalidBaseRefError | BaseRefNotFoundError | GitCommandFailedError

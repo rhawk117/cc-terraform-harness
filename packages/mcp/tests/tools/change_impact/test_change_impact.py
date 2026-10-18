@@ -266,3 +266,70 @@ class TestChangeImpactSplitModule:
             (str(split_module), 'output', 'id', 'removed'),
             (str(split_module), 'variable', 'name', 'type_changed'),
         }
+
+
+class TestChangeImpactContainment:
+    async def test_symlink_escaping_the_root_is_reported_and_never_parsed(
+        self,
+        client: Client,
+        project_root: Path,
+        git_harness: GitHarness,
+        tmp_path_factory: pytest.TempPathFactory,
+    ) -> None:
+        outside = tmp_path_factory.mktemp('outside')
+        write(outside, 'secret.tf', 'variable "leaked" {}\noutput "stolen" {\n  value = 1\n}\n')
+        link = project_root.joinpath('link.tf')
+        link.symlink_to(outside.joinpath('secret.tf'))
+        git_harness.script_resolution('HEAD')
+        git_harness.script_merge_base()
+        git_harness.script_name_status()
+        git_harness.script_untracked('link.tf')
+
+        impact = await read_impact(client, project_root)
+
+        assert [problem['path'] for problem in impact['problems']] == [str(link)]
+        assert impact['blocks'] == []
+        assert impact['interface'] == []
+
+    async def test_missing_directory_is_refused_naming_the_path(
+        self, client: Client, project_root: Path, git_harness: GitHarness
+    ) -> None:
+        target = project_root.joinpath('absent')
+
+        text = await read_failure(client, target)
+
+        assert str(target) in text
+        assert not git_harness.runner.calls
+
+    async def test_regular_file_is_refused_naming_the_path(
+        self, client: Client, project_root: Path, git_harness: GitHarness
+    ) -> None:
+        write(project_root, 'main.tf', '')
+        target = project_root.joinpath('main.tf')
+
+        text = await read_failure(client, target)
+
+        assert str(target) in text
+        assert not git_harness.runner.calls
+
+
+class TestChangeImpactSiblings:
+    async def test_unparseable_sibling_is_reported(
+        self, client: Client, project_root: Path, git_harness: GitHarness
+    ) -> None:
+        write(project_root, 'variables.tf', SPLIT_VARIABLES_CURRENT)
+        write(project_root, 'broken.tf', 'variable "x" {\n')
+        git_harness.script_resolution('HEAD')
+        git_harness.script_merge_base()
+        git_harness.script_name_status('M', 'variables.tf')
+        git_harness.script_hunks('variables.tf', '@@ -1 +1 @@\n')
+        git_harness.script_base_content('variables.tf', SPLIT_VARIABLES_BASE)
+        git_harness.script_untracked()
+
+        impact = await read_impact(client, project_root)
+
+        broken = str(project_root.joinpath('broken.tf'))
+        assert [(p['path'], 'does not parse' in p['message']) for p in impact['problems']] == [
+            (broken, True)
+        ]
+        assert [change['name'] for change in impact['interface']] == ['name']
