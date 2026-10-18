@@ -95,6 +95,7 @@ class SubagentInventory:
 class PluginInventory:
     manifest: PluginManifestFile
     mcp: PluginManifestFile
+    lsp: PluginManifestFile
     hooks: PluginManifestFile
     skills: SkillInventory
     subagents: SubagentInventory
@@ -105,6 +106,7 @@ def claude_plugin(repository_root: Path) -> PluginInventory:
     plugin_paths = {
         'manifest': repository_root.joinpath('.claude-plugin', 'plugin.json'),
         'mcp': repository_root.joinpath('.mcp.json'),
+        'lsp': repository_root.joinpath('.lsp.json'),
         'hooks': repository_root.joinpath('hooks', 'hooks.json'),
     }
     plugin_files = {key: PluginManifestFile.read(path) for key, path in plugin_paths.items()}

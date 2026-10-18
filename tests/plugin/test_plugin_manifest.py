@@ -18,11 +18,11 @@ class TestPluginManifest:
 
     @pytest.fixture
     def mcp_server(self, claude_plugin: PluginInventory) -> dict[str, Any]:
-        return claude_plugin.manifest.required_key('mcpServers')['terraform']
+        return claude_plugin.mcp.required_key('mcpServers')['terraform']
 
     @pytest.fixture
     def lsp_server(self, claude_plugin: PluginInventory) -> dict[str, Any]:
-        return claude_plugin.manifest.required_key('lspServers')['terraform']
+        return claude_plugin.lsp.required_key('terraform')
 
     def test_mcp_server_runs_the_package_through_uv(self, mcp_server: dict[str, Any]) -> None:
         assert mcp_server['command'] == 'uv'
@@ -42,6 +42,9 @@ class TestPluginManifest:
             '.tfvars': 'terraform-vars',
         }
 
-    def test_mcp_and_hooks_files_are_empty_configs(self, claude_plugin: PluginInventory) -> None:
-        assert claude_plugin.mcp.required_key('mcpServers') == {}
+    def test_manifest_declares_no_inline_servers(self, claude_plugin: PluginInventory) -> None:
+        assert 'mcpServers' not in claude_plugin.manifest.contents
+        assert 'lspServers' not in claude_plugin.manifest.contents
+
+    def test_hooks_file_is_an_empty_config(self, claude_plugin: PluginInventory) -> None:
         assert claude_plugin.hooks.required_key('hooks') == {}
