@@ -2,7 +2,7 @@
 
 import re
 import shlex
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from itertools import zip_longest
 from typing import TYPE_CHECKING
 
@@ -145,10 +145,8 @@ def group_by_identity(blocks: tuple[Block, ...]) -> dict[BlockIdentity, list[Blo
     return groups
 
 
-VARIABLE_FACETS: dict[InterfaceChangeKind, str] = {
-    'type_changed': 'type',
-    'default_changed': 'default',
-}
+def create_variable_facets() -> dict[InterfaceChangeKind, str]:
+    return {'type_changed': 'type', 'default_changed': 'default'}
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -156,9 +154,10 @@ class InterfacePolicy:
     module: str
     base: ModuleInterface
     current: ModuleInterface
+    facets: dict[InterfaceChangeKind, str] = field(default_factory=create_variable_facets)
 
     def create_variable_change(self, name: str, change: InterfaceChangeKind) -> InterfaceChange:
-        facet = VARIABLE_FACETS.get(change)
+        facet = self.facets.get(change)
         if facet is None:
             return InterfaceChange(module=self.module, kind='variable', name=name, change=change)
 
@@ -182,7 +181,7 @@ class InterfacePolicy:
 
         return [
             self.create_variable_change(name, change)
-            for change, facet in VARIABLE_FACETS.items()
+            for change, facet in self.facets.items()
             if getattr(before, facet) != getattr(after, facet)
         ]
 
