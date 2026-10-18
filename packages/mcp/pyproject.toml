@@ -1,0 +1,23 @@
+[project]
+name = "tf-harness-mcp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "rhawk117", email = "hawkinsry19@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "httpx>=0.28.1",
+    "mcp>=2.3.0",
+    "pydantic>=2.14.1",
+    "pydantic-settings>=2.16.0",
+    "python-hcl2>=8.1.4",
+]
+
+[project.scripts]
+tf-harness-mcp = "tf_harness_mcp:main"
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"
