@@ -106,6 +106,7 @@ class TestSchemaSettings:
         loaded = load_settings(['--project-root', str(project_root)], {})
 
         assert loaded.schema_timeout_seconds == 60.0
+        assert loaded.git_timeout_seconds == 30.0
 
     def test_defaults_under_xdg_cache_home(self, project_root: Path) -> None:
         environ = {'XDG_CACHE_HOME': str(self.xdg_cache_home), 'HOME': str(self.home)}

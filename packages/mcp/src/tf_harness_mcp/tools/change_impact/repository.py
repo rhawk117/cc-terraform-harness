@@ -1,10 +1,10 @@
 """Reads changed Terraform files, their hunks and their base content through the runner."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from tf_harness_mcp.runner.domain import Command
-from tf_harness_mcp.tools.change_impact.domain import ChangedFile, ChangeSet, GitOptions
+from tf_harness_mcp.tools.change_impact.domain import ChangedFile, ChangeSet
 from tf_harness_mcp.tools.change_impact.errors import BaseRefNotFoundError
 from tf_harness_mcp.tools.change_impact.policy import (
     BaseRefPolicy,
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from tf_harness_mcp.runner.domain import CommandResult, CommandRunner
-    from tf_harness_mcp.tools.change_impact.domain import ChangeStatus, LineRange
+    from tf_harness_mcp.tools.change_impact.domain import GitOptions, LineRange
 
 TF_PATHSPEC = '*.tf'
 DIFF_ARGV = (
@@ -29,14 +29,13 @@ DIFF_ARGV = (
     '--no-renames',
     '--relative',
 )
-STATUSES: dict[str, ChangeStatus] = {'A': 'added', 'D': 'deleted'}
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
 class GitRepository:
     runner: CommandRunner
     directory: Path
-    options: GitOptions = field(default_factory=GitOptions)
+    options: GitOptions
 
     async def run(self, argv: tuple[str, ...]) -> CommandResult:
         command = Command(argv=('git', *argv), cwd=self.directory)
@@ -76,7 +75,7 @@ class GitRepository:
         tokens = split_nul(await self.read_stdout(argv))
         changes = []
         for code, path in zip(tokens[::2], tokens[1::2], strict=True):
-            status = STATUSES.get(code, 'modified')
+            status = self.options.statuses.get(code, 'modified')
             ranges = await self.read_hunks(base_commit, path)
             changes.append(ChangedFile(path=path, status=status, ranges=ranges))
 

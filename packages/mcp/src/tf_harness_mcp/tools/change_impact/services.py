@@ -15,6 +15,7 @@ from tf_harness_mcp.structure.services import (
 from tf_harness_mcp.tools.change_impact.domain import (
     AffectedRoot,
     ChangeImpact,
+    GitOptions,
     ModuleInterface,
     ProblemEntry,
     Variable,
@@ -185,6 +186,7 @@ class ChangeImpactTool:
     budget: OutputBudget
     indexer: BlockIndexer
     runner: CommandRunner
+    git_options: GitOptions
 
     async def read_snapshots(
         self, git: GitRepository, base_ref: str
@@ -201,7 +203,7 @@ class ChangeImpactTool:
         return resolved
 
     async def analyze(self, directory: Path, base_ref: str) -> ChangeImpact:
-        git = GitRepository(runner=self.runner, directory=directory)
+        git = GitRepository(runner=self.runner, directory=directory, options=self.git_options)
         base_commit, snapshots = await self.read_snapshots(git, base_ref)
         escaped = [snapshot.escape for snapshot in snapshots if snapshot.escape]
         readable = [snapshot for snapshot in snapshots if not snapshot.escape]
@@ -248,4 +250,5 @@ def create_change_impact_tool(runner: CommandRunner, settings: Settings) -> Chan
         budget=create_output_budget(settings),
         indexer=create_block_indexer(settings.project_root),
         runner=runner,
+        git_options=GitOptions(timeout_seconds=settings.git_timeout_seconds),
     )

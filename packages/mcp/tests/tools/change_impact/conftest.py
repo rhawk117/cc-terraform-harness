@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from tf_harness_mcp.runner.domain import CommandResult
+from tf_harness_mcp.tools.change_impact.domain import GitOptions
 from tf_harness_mcp.tools.change_impact.repository import GitRepository
 
 if TYPE_CHECKING:
@@ -68,5 +69,6 @@ def module(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def git_harness(recording_runner: RecordingCommandRunner, module: Path) -> GitHarness:
-    repository = GitRepository(runner=recording_runner, directory=module)
+    options = GitOptions(timeout_seconds=30.0)
+    repository = GitRepository(runner=recording_runner, directory=module, options=options)
     return GitHarness(runner=recording_runner, repository=repository, module=module)

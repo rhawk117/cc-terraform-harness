@@ -1,6 +1,6 @@
 """Values the change_impact git layer reads and the result the tool returns."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
@@ -12,9 +12,14 @@ type InterfaceKind = Literal['variable', 'output']
 type InterfaceChangeKind = Literal['added', 'removed', 'type_changed', 'default_changed']
 
 
+def create_change_statuses() -> dict[str, ChangeStatus]:
+    return {'A': 'added', 'D': 'deleted'}
+
+
 @dataclass(slots=True, kw_only=True, frozen=True)
 class GitOptions:
-    timeout_seconds: float = 30.0
+    timeout_seconds: float
+    statuses: dict[str, ChangeStatus] = field(default_factory=create_change_statuses)
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)

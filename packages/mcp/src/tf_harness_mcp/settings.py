@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     show_timeout_seconds: PositiveFloat = 60.0
     lint_timeout_seconds: PositiveFloat = 120.0
     schema_timeout_seconds: PositiveFloat = 60.0
+    git_timeout_seconds: PositiveFloat = 30.0
     schema_cache_dir: Path = Field(default_factory=default_schema_cache_dir)
     output_budget_bytes: PositiveInt = Field(default_factory=default_output_budget)
     output_budget_max_bytes: PositiveInt = Field(default_factory=default_output_budget_max)

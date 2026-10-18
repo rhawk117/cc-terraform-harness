@@ -13,7 +13,11 @@ from tf_harness_mcp.tools.describe.domain import Location
 if TYPE_CHECKING:
     from tf_harness_mcp.runner.domain import CommandResult
     from tf_harness_mcp.structure.domain import Block
-    from tf_harness_mcp.tools.change_impact.domain import BlockStatus, ModuleInterface
+    from tf_harness_mcp.tools.change_impact.domain import (
+        BlockStatus,
+        InterfaceChangeKind,
+        ModuleInterface,
+    )
 
 type BlockIdentity = tuple[str, tuple[str, ...]]
 
@@ -141,49 +145,46 @@ def group_by_identity(blocks: tuple[Block, ...]) -> dict[BlockIdentity, list[Blo
     return groups
 
 
+VARIABLE_FACETS: dict[InterfaceChangeKind, str] = {
+    'type_changed': 'type',
+    'default_changed': 'default',
+}
+
+
 @dataclass(slots=True, kw_only=True, frozen=True)
 class InterfacePolicy:
     module: str
     base: ModuleInterface
     current: ModuleInterface
 
+    def create_variable_change(self, name: str, change: InterfaceChangeKind) -> InterfaceChange:
+        facet = VARIABLE_FACETS.get(change)
+        if facet is None:
+            return InterfaceChange(module=self.module, kind='variable', name=name, change=change)
+
+        return InterfaceChange(
+            module=self.module,
+            kind='variable',
+            name=name,
+            change=change,
+            before=getattr(self.base.variables[name], facet),
+            after=getattr(self.current.variables[name], facet),
+        )
+
     def compare_variable(self, name: str) -> list[InterfaceChange]:
         before = self.base.variables.get(name)
         after = self.current.variables.get(name)
         if before is None:
-            return [InterfaceChange(module=self.module, kind='variable', name=name, change='added')]
+            return [self.create_variable_change(name, 'added')]
 
         if after is None:
-            return [
-                InterfaceChange(module=self.module, kind='variable', name=name, change='removed')
-            ]
+            return [self.create_variable_change(name, 'removed')]
 
-        changes = []
-        if before.type != after.type:
-            changes.append(
-                InterfaceChange(
-                    module=self.module,
-                    kind='variable',
-                    name=name,
-                    change='type_changed',
-                    before=before.type,
-                    after=after.type,
-                )
-            )
-
-        if before.default != after.default:
-            changes.append(
-                InterfaceChange(
-                    module=self.module,
-                    kind='variable',
-                    name=name,
-                    change='default_changed',
-                    before=before.default,
-                    after=after.default,
-                )
-            )
-
-        return changes
+        return [
+            self.create_variable_change(name, change)
+            for change, facet in VARIABLE_FACETS.items()
+            if getattr(before, facet) != getattr(after, facet)
+        ]
 
     def list_variable_changes(self) -> list[InterfaceChange]:
         names = sorted(self.base.variables.keys() | self.current.variables.keys())
