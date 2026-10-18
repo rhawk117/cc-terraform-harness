@@ -19,6 +19,7 @@ class TestCreateServer:
             'plan_digest',
             'describe',
             'provider_schema',
+            'change_impact',
         ]
 
     def test_server_is_named_for_the_package(self, server: MCPServer) -> None:

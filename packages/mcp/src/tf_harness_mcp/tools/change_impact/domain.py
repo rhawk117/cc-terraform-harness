@@ -1,9 +1,15 @@
-"""Values the change_impact git layer reads from a repository."""
+"""Values the change_impact git layer reads and the result the tool returns."""
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from tf_harness_mcp.tools.describe.domain import Location
 
 type ChangeStatus = Literal['added', 'modified', 'deleted']
+type BlockStatus = Literal['added', 'modified', 'removed']
+type InterfaceKind = Literal['variable', 'output']
+type InterfaceChangeKind = Literal['added', 'removed', 'type_changed', 'default_changed']
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -28,3 +34,48 @@ class ChangedFile:
 class ChangeSet:
     base_commit: str
     files: tuple[ChangedFile, ...]
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
+class ChangedBlock:
+    kind: str
+    labels: list[str]
+    status: BlockStatus
+    location: Location
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
+class InterfaceChange:
+    module: str
+    kind: InterfaceKind
+    name: str
+    change: InterfaceChangeKind
+    before: str | None = None
+    after: str | None = None
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
+class AffectedRoot:
+    root: str
+    module: str
+    path: list[str]
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
+class ChangeImpact:
+    base_commit: str
+    blocks: list[ChangedBlock]
+    interface: list[InterfaceChange]
+    roots: list[AffectedRoot]
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
+class Variable:
+    type: str | None
+    default: str | None
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
+class ModuleInterface:
+    variables: dict[str, Variable]
+    outputs: frozenset[str]

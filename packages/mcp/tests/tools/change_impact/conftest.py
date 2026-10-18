@@ -53,6 +53,9 @@ class GitHarness:
         argv = (*DIFF_PINS, '--unified=0', BASE, '--', f':(literal){path}')
         self.runner.script(argv, succeed(diff))
 
+    def script_base_content(self, path: str, text: str) -> None:
+        self.runner.script(('git', 'cat-file', 'blob', f'{BASE}:./{path}'), succeed(text))
+
     def script_untracked(self, *paths: str) -> None:
         argv = ('git', 'ls-files', '--others', '--exclude-standard', '-z', '--', '*.tf')
         self.runner.script(argv, succeed(''.join(f'{path}\0' for path in paths)))
