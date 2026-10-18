@@ -12,13 +12,24 @@ if TYPE_CHECKING:
 type CommandPrefix = tuple[str, ...]
 
 
-def default_read_only_prefixes() -> tuple[CommandPrefix, ...]:
-    return (('terraform', 'version'),)
+@dataclass(slots=True, kw_only=True, frozen=True)
+class AllowedCommand:
+    prefix: CommandPrefix
+    forbidden_flags: tuple[str, ...] = ()
+
+
+def default_read_only_commands() -> tuple[AllowedCommand, ...]:
+    return (
+        AllowedCommand(prefix=('terraform', 'version')),
+        AllowedCommand(prefix=('terraform', 'fmt', '-check')),
+        AllowedCommand(prefix=('terraform', 'validate')),
+        AllowedCommand(prefix=('tflint',), forbidden_flags=('--fix', '--init')),
+    )
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
 class ReadOnlyOptions:
-    prefixes: tuple[CommandPrefix, ...] = field(default_factory=default_read_only_prefixes)
+    commands: tuple[AllowedCommand, ...] = field(default_factory=default_read_only_commands)
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -26,11 +37,17 @@ class ReadOnlyCommandPolicy:
     command: Command
     options: ReadOnlyOptions
 
-    def is_allowed_by(self, prefix: CommandPrefix) -> bool:
-        return bool(prefix) and self.command.argv[: len(prefix)] == prefix
+    def has_flag(self, flag: str) -> bool:
+        return any(arg == flag or arg.startswith(f'{flag}=') for arg in self.command.argv)
+
+    def is_allowed_by(self, allowed: AllowedCommand) -> bool:
+        if not allowed.prefix or self.command.argv[: len(allowed.prefix)] != allowed.prefix:
+            return False
+
+        return not any(map(self.has_flag, allowed.forbidden_flags))
 
     def get_command_problem(self) -> CommandNotAllowedError | None:
-        if any(self.is_allowed_by(prefix) for prefix in self.options.prefixes):
+        if any(map(self.is_allowed_by, self.options.commands)):
             return None
 
         return CommandNotAllowedError(command=shlex.join(self.command.argv))

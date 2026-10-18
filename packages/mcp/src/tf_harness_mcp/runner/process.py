@@ -35,6 +35,7 @@ class AnyioCommandRunner:
             with anyio.fail_after(timeout_seconds):
                 completed = await anyio.run_process(
                     list(command.argv),
+                    cwd=command.cwd,
                     env=environment,
                     stdin=subprocess.DEVNULL,
                     check=False,

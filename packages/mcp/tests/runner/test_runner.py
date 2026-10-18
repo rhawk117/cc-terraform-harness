@@ -1,12 +1,13 @@
 import shutil
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import anyio
 import pytest
 from tf_harness_mcp.runner.domain import Command
 from tf_harness_mcp.runner.errors import CommandNotAllowedError, CommandTimeoutError
-from tf_harness_mcp.runner.policy import ReadOnlyCommandPolicy, ReadOnlyOptions
+from tf_harness_mcp.runner.policy import AllowedCommand, ReadOnlyCommandPolicy, ReadOnlyOptions
 from tf_harness_mcp.runner.process import create_command_runner
 
 if TYPE_CHECKING:
@@ -15,18 +16,34 @@ if TYPE_CHECKING:
 
 READ_STDIN = 'import sys; print(repr(sys.stdin.read()))'
 PRINT_ENV = 'import os, sys; print(os.environ.get(sys.argv[1], "unset"))'
+PRINT_CWD = 'import pathlib; print(pathlib.Path.cwd().resolve())'
 
 
 def python_options() -> ReadOnlyOptions:
-    return ReadOnlyOptions(prefixes=((sys.executable, '-c'),))
+    return ReadOnlyOptions(commands=(AllowedCommand(prefix=(sys.executable, '-c')),))
 
 
-def python_command(script: str, *args: str) -> Command:
-    return Command(argv=(sys.executable, '-c', script, *args))
+def python_command(script: str, *args: str, cwd: Path | None = None) -> Command:
+    return Command(argv=(sys.executable, '-c', script, *args), cwd=cwd)
 
 
 def terraform_command(*args: str) -> Command:
     return Command(argv=('terraform', *args))
+
+
+def allowed_command_cases() -> pytest.MarkDecorator:
+    names = {
+        'version': terraform_command('version'),
+        'version-json': terraform_command('version', '-json'),
+        'fmt-check': terraform_command('fmt', '-check'),
+        'fmt-check-recursive': terraform_command('fmt', '-check', '-recursive', '-no-color'),
+        'validate': terraform_command('validate'),
+        'validate-json': terraform_command('validate', '-json', '-no-color'),
+        'tflint': Command(argv=('tflint',)),
+        'tflint-json': Command(argv=('tflint', '--format=json', '--recursive')),
+    }
+    params: list[ParameterSet] = [pytest.param(cmd, id=name) for name, cmd in names.items()]
+    return pytest.mark.parametrize('command', params)
 
 
 def refused_command_cases() -> pytest.MarkDecorator:
@@ -38,6 +55,14 @@ def refused_command_cases() -> pytest.MarkDecorator:
         'other-binary': Command(argv=('rm', '-rf', 'x')),
         'shell-string': Command(argv=('sh', '-c', 'terraform version')),
         'empty': Command(argv=()),
+        'fmt-without-check': terraform_command('fmt'),
+        'fmt-write-only': terraform_command('fmt', '-write=true'),
+        'fmt-check-not-first': terraform_command('fmt', '-recursive', '-check'),
+        'tflint-fix': Command(argv=('tflint', '--fix')),
+        'tflint-fix-last': Command(argv=('tflint', '--format=json', '--fix')),
+        'tflint-fix-with-value': Command(argv=('tflint', '--fix=true')),
+        'tflint-init': Command(argv=('tflint', '--init')),
+        'tflint-init-last': Command(argv=('tflint', '--recursive', '--init')),
     }
     params: list[ParameterSet] = [pytest.param(cmd, id=name) for name, cmd in names.items()]
     return pytest.mark.parametrize('command', params)
@@ -49,12 +74,9 @@ class TestReadOnlyCommandPolicy:
         policy = ReadOnlyCommandPolicy(command=command, options=ReadOnlyOptions())
         return policy.get_command_problem()
 
-    def test_default_set_holds_terraform_version_only(self) -> None:
-        assert ReadOnlyOptions().prefixes == (('terraform', 'version'),)
-
-    @pytest.mark.parametrize('args', [('version',), ('version', '-json')])
-    def test_terraform_version_is_allowed(self, args: tuple[str, ...]) -> None:
-        assert self.find_problem(terraform_command(*args)) is None
+    @allowed_command_cases()
+    def test_read_only_command_is_allowed(self, command: Command) -> None:
+        assert self.find_problem(command) is None
 
     @refused_command_cases()
     def test_command_outside_the_set_is_refused(self, command: Command) -> None:
@@ -114,17 +136,56 @@ class TestAnyioCommandRunner:
 
 
 @pytest.mark.unit
+class TestCommandWorkingDirectory:
+    timeout = 10.0
+
+    @pytest.fixture
+    def runner(self) -> CommandRunner:
+        return create_command_runner(options=python_options())
+
+    @pytest.fixture
+    def resolved_tmp_path(self, tmp_path: Path) -> Path:
+        return tmp_path.resolve()
+
+    @pytest.fixture
+    def resolved_process_directory(self) -> Path:
+        return Path.cwd().resolve()
+
+    async def test_child_starts_in_the_command_directory(
+        self, runner: CommandRunner, tmp_path: Path, resolved_tmp_path: Path
+    ) -> None:
+        result = await runner.run(python_command(PRINT_CWD, cwd=tmp_path), self.timeout)
+
+        assert result.stdout.strip() == str(resolved_tmp_path)
+
+    async def test_child_inherits_the_process_directory_without_one(
+        self, runner: CommandRunner, resolved_process_directory: Path
+    ) -> None:
+        result = await runner.run(python_command(PRINT_CWD), self.timeout)
+
+        assert result.stdout.strip() == str(resolved_process_directory)
+
+    async def test_refused_command_is_refused_in_any_directory(
+        self, runner: CommandRunner, tmp_path: Path
+    ) -> None:
+        command = Command(argv=('terraform', 'apply'), cwd=tmp_path)
+
+        with pytest.raises(CommandNotAllowedError):
+            await runner.run(command, self.timeout)
+
+
+@pytest.mark.unit
 class TestChildStdin:
     server_stdin = b'mcp protocol bytes'
     server_script = f"""
 import sys
 import anyio
 from tf_harness_mcp.runner.domain import Command
-from tf_harness_mcp.runner.policy import ReadOnlyOptions
+from tf_harness_mcp.runner.policy import AllowedCommand, ReadOnlyOptions
 from tf_harness_mcp.runner.process import create_command_runner
 
 async def main():
-    options = ReadOnlyOptions(prefixes=((sys.executable, '-c'),))
+    options = ReadOnlyOptions(commands=(AllowedCommand(prefix=(sys.executable, '-c')),))
     command = Command(argv=(sys.executable, '-c', {READ_STDIN!r}))
     result = await create_command_runner(options=options).run(command, 10.0)
     print(result.stdout.strip())

@@ -6,6 +6,8 @@ from tf_harness_mcp.runner.errors import CommandNotAllowedError
 from tf_harness_mcp.runner.tests.recording import RecordedCall, UnscriptedCommandError
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tf_harness_mcp.runner.tests.recording import RecordingCommandRunner
 
 VERSION = Command(argv=('terraform', 'version'))
@@ -38,6 +40,16 @@ class TestRecordingCommandRunner:
             RecordedCall(command=VERSION, timeout_seconds=5.0),
             RecordedCall(command=VERSION, timeout_seconds=7.5),
         ]
+
+    async def test_each_call_records_the_working_directory(
+        self, scripted: RecordingCommandRunner, tmp_path: Path
+    ) -> None:
+        in_directory = Command(argv=VERSION.argv, cwd=tmp_path)
+        scripted.script(in_directory.argv, VERSION_RESULT)
+
+        await scripted.run(in_directory, 5.0)
+
+        assert [call.command.cwd for call in scripted.calls] == [tmp_path]
 
     async def test_command_outside_the_read_only_set_is_refused(
         self, scripted: RecordingCommandRunner
