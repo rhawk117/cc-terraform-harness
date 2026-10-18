@@ -6,12 +6,11 @@ from typing import Annotated
 
 from pydantic import Field
 
-from tf_harness_mcp.policies.errors import AbsolutePathError, PathOutsideRootError
+from tf_harness_mcp.policies.errors import PathOutsideRootError
 
 PROJECT_PATH_MARKER = 'x-project-path'
 
 type ProjectPath = Annotated[Path, Field(json_schema_extra={PROJECT_PATH_MARKER: True})]
-type PathIssue = AbsolutePathError | PathOutsideRootError
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -28,17 +27,10 @@ class PathContainmentPolicy:
         return self.resolved_root.joinpath(self.path).resolve()
 
     @property
-    def is_absolute(self) -> bool:
-        return self.path.is_absolute()
-
-    @property
     def is_inside_root(self) -> bool:
         return self.resolved.is_relative_to(self.resolved_root)
 
-    def get_path_problem(self) -> PathIssue | None:
-        if self.is_absolute:
-            return AbsolutePathError(path=self.path)
-
+    def get_path_problem(self) -> PathOutsideRootError | None:
         if not self.is_inside_root:
             return PathOutsideRootError(path=self.path, root=self.root)
 

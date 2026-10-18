@@ -8,12 +8,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-class AbsolutePathError(HarnessError):
-    def __init__(self, *, path: Path) -> None:
-        self.path = path
-        super().__init__(f'path must be relative to the project root: {path}')
-
-
 class PathOutsideRootError(HarnessError):
     def __init__(self, *, path: Path, root: Path) -> None:
         self.path = path

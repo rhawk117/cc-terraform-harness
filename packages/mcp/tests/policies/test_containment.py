@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from tf_harness_mcp.policies.containment import PathContainmentPolicy, resolve_project_path
-from tf_harness_mcp.policies.errors import AbsolutePathError, PathOutsideRootError
+from tf_harness_mcp.policies.errors import PathOutsideRootError
 
 if TYPE_CHECKING:
     from _pytest.mark import ParameterSet
@@ -33,7 +33,7 @@ def refused_path_cases() -> pytest.MarkDecorator:
     cases = [
         PathCase(name='parent-traversal', path='../outside/x', issue_type=PathOutsideRootError),
         PathCase(name='nested-traversal', path='a/../../x', issue_type=PathOutsideRootError),
-        PathCase(name='absolute', path='/etc/passwd', issue_type=AbsolutePathError),
+        PathCase(name='absolute-outside', path='/etc/passwd', issue_type=PathOutsideRootError),
         PathCase(name='escaping-symlink', path='link-out/x', issue_type=PathOutsideRootError),
         PathCase(name='escaping-symlink-itself', path='link-out', issue_type=PathOutsideRootError),
     ]
@@ -73,10 +73,10 @@ class TestPathContainmentPolicy:
     def test_path_staying_inside_the_root_is_accepted(self, layout: Layout, case: PathCase) -> None:
         assert self.find_path_problem(layout, case) is None
 
-    def test_absolute_path_inside_the_root_is_refused(self, layout: Layout) -> None:
+    def test_absolute_path_inside_the_root_is_accepted(self, layout: Layout) -> None:
         policy = PathContainmentPolicy(root=layout.root, path=layout.root.joinpath('inside'))
 
-        assert isinstance(policy.get_path_problem(), AbsolutePathError)
+        assert policy.get_path_problem() is None
 
     def test_resolve_returns_the_symlink_target_inside_the_root(self, layout: Layout) -> None:
         resolved = resolve_project_path(layout.root, Path('link-in/x'))
@@ -87,6 +87,11 @@ class TestPathContainmentPolicy:
         with pytest.raises(PathOutsideRootError):
             resolve_project_path(layout.root, Path('link-out/x'))
 
-    def test_resolve_raises_for_an_absolute_path(self, layout: Layout) -> None:
-        with pytest.raises(AbsolutePathError):
+    def test_resolve_returns_an_absolute_path_inside_the_root(self, layout: Layout) -> None:
+        inside = layout.root.joinpath('inside', 'x')
+
+        assert resolve_project_path(layout.root, inside) == inside.resolve()
+
+    def test_resolve_raises_for_an_absolute_path_outside_the_root(self, layout: Layout) -> None:
+        with pytest.raises(PathOutsideRootError):
             resolve_project_path(layout.root, layout.outside)

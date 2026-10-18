@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import pytest
 from mcp import Client
 from mcp.server.mcpserver import MCPServer
 from tf_harness_mcp.policies import containment
 from tf_harness_mcp.policies.containment import PROJECT_PATH_MARKER
-from tf_harness_mcp.policies.errors import AbsolutePathError
+from tf_harness_mcp.policies.errors import PathOutsideRootError
 
 if TYPE_CHECKING:
     from mcp.types import Tool
@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.unit
 
 type Schema = dict[str, Any]
+type PathShape = Literal['single', 'list']
 
 SAMPLE_BY_TYPE: dict[str, object] = {
     'string': 'sample',
@@ -36,39 +37,66 @@ def follow_reference(schema: Schema, root: Schema) -> Schema:
     return definitions[reference.removeprefix('#/$defs/')]
 
 
+def create_path_value(shape: PathShape, path: str) -> object:
+    if shape == 'list':
+        return [path]
+
+    return path
+
+
+def find_path_shape(schema: Schema, root: Schema) -> PathShape | None:
+    target = follow_reference(schema, root)
+    if target.get(PROJECT_PATH_MARKER):
+        return 'single'
+
+    items = target.get('items')
+    if isinstance(items, dict) and find_path_shape(items, root):
+        return 'list'
+
+    branches = [*target.get('anyOf', []), *target.get('oneOf', [])]
+    shapes = (find_path_shape(branch, root) for branch in branches)
+    return next(filter(None, shapes), None)
+
+
 def list_properties(tool: Tool) -> dict[str, Schema]:
-    properties = tool.input_schema.get('properties', {})
-    return {
-        name: follow_reference(schema, tool.input_schema) for name, schema in properties.items()
+    return tool.input_schema.get('properties', {})
+
+
+def list_project_paths(tool: Tool) -> dict[str, PathShape]:
+    shapes = {
+        name: find_path_shape(schema, tool.input_schema)
+        for name, schema in list_properties(tool).items()
     }
+    return {name: shape for name, shape in shapes.items() if shape}
 
 
 def list_project_path_names(tool: Tool) -> list[str]:
-    properties = list_properties(tool)
-    return [name for name, schema in properties.items() if schema.get(PROJECT_PATH_MARKER)]
+    return list(list_project_paths(tool))
 
 
 def fill_arguments(tool: Tool, path: str) -> dict[str, object]:
     properties = list_properties(tool)
-    required = tool.input_schema.get('required', [])
-    marked = list_project_path_names(tool)
+    marked = list_project_paths(tool)
+    required = [name for name in tool.input_schema.get('required', []) if name not in marked]
     samples = {name: SAMPLE_BY_TYPE[properties[name]['type']] for name in required}
-    return samples | dict.fromkeys(marked, path)
+    return samples | {name: create_path_value(shape, path) for name, shape in marked.items()}
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
 class OutsidePath:
     path: str
+    root: Path
 
     @property
     def expected_message(self) -> str:
-        return str(AbsolutePathError(path=Path(self.path)))
+        return str(PathOutsideRootError(path=Path(self.path), root=self.root))
 
 
 class TestToolPathContainment:
     @pytest.fixture
     def outside(self, project_root: Path) -> OutsidePath:
-        return OutsidePath(path=str(project_root.parent.joinpath('outside-the-root')))
+        outside_path = str(project_root.parent.joinpath('outside-the-root'))
+        return OutsidePath(path=outside_path, root=project_root)
 
     async def assert_refuses_outside_paths(self, client: Client, outside: OutsidePath) -> None:
         listed = await client.list_tools()
@@ -97,17 +125,36 @@ class TestToolPathContainment:
             return f'{label}:{containment.resolve_project_path(project_root, path)}'
 
         @server.tool()
+        def read_optional(path: containment.ProjectPath | None) -> str:
+            return str(path and containment.resolve_project_path(project_root, path))
+
+        @server.tool()
+        def read_many(paths: list[containment.ProjectPath]) -> str:
+            return str([containment.resolve_project_path(project_root, path) for path in paths])
+
+        @server.tool()
         def read_anything(path: containment.ProjectPath) -> str:
             return str(path)
+
+        @server.tool()
+        def read_anything_optional(path: containment.ProjectPath | None) -> str:
+            return str(path)
+
+        @server.tool()
+        def read_anything_many(paths: list[containment.ProjectPath]) -> str:
+            return str(paths)
 
         async with Client(server) as client:
             listed = await client.list_tools()
             tools = {tool.name: tool for tool in listed.tools}
             names = {name: list_project_path_names(tool) for name, tool in tools.items()}
-            arguments = fill_arguments(tools['read_file'], outside.path)
-            refused = await client.call_tool('read_file', arguments)
-            accepted = await client.call_tool('read_anything', {'path': outside.path})
+            results = {
+                name: await client.call_tool(name, fill_arguments(tool, outside.path))
+                for name, tool in tools.items()
+            }
 
-        assert names == {'read_file': ['path'], 'read_anything': ['path']}
-        assert refused.is_error
-        assert not accepted.is_error
+        guarded = ['read_file', 'read_optional', 'read_many']
+        unguarded = ['read_anything', 'read_anything_optional', 'read_anything_many']
+        assert all(names[name] for name in tools)
+        assert [name for name in guarded if results[name].is_error] == guarded
+        assert [name for name in unguarded if not results[name].is_error] == unguarded
