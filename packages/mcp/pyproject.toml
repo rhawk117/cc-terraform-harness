@@ -1,7 +1,7 @@
 [project]
 name = "tf-harness-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "Terraform MCP server that checks modules, digests plans and reads provider schemas"
 readme = "README.md"
 authors = [
     { name = "rhawk117", email = "hawkinsry19@gmail.com" }

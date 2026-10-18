@@ -20,7 +20,7 @@ Python 3.14 (`.python-version`), uv, ruff, ty, pytest, mdformat and pre-commit. 
 ## Layout
 
 - The plugin sits at the repository root, and `.claude-plugin/plugin.json` contains its manifest. The root `pyproject.toml` is both the plugin project and the uv workspace root, with members under `packages/`.
-- `packages/hooks` and `packages/mcp` are stubs. The hook code that runs today is `.claude/hooks/pyhooks.py`, a PEP 723 script that `.claude/settings.json` wires to Write, Edit and Read. ty does not check it, because `ty.toml` includes only `packages` and `tests`.
+- `packages/mcp` holds the terraform MCP server (`tf_harness_mcp`), which `.mcp.json` launches and whose tests live in `packages/mcp/tests`. There is no `packages/hooks` package yet: the hook code that runs today is `.claude/hooks/pyhooks.py`, a PEP 723 script that `.claude/settings.json` wires to Write, Edit and Read. ty does not check it, because `ty.toml` includes only `packages` and `tests`.
 - Read `.claude/rules/python.md` before writing Python and `.claude/rules/testing.md` before writing tests. Both load on their own when you touch a matching file.
 
 ## Conventions
@@ -37,6 +37,8 @@ Python 3.14 (`.python-version`), uv, ruff, ty, pytest, mdformat and pre-commit. 
 ## Verification
 
 `.github/workflows/ci.yml` defines CI's quality job, which runs the pre-commit hooks on all files and then the tests. Match it with `make pre-commit`, then `make test`. `make check` is the faster local loop, but it skips the hygiene and uv-lock hooks, so it can pass where CI fails.
+
+Also run `uv run pytest -q packages/mcp/tests` for any change under `packages/mcp`. CI does not run it: `testpaths` in `pytest.toml` lists only `packages/*/src/*` and `tests`, and `ci.yml` calls pytest only for the integration marker.
 
 ## Claude Code
 
