@@ -84,8 +84,9 @@ class ModuleGraph:
     def calls_by_directory(self) -> dict[Path, tuple[Path, ...]]:
         return {module.index.directory: module.calls for module in self.modules}
 
-    def extend_paths(self, paths: CallPaths, seen: frozenset[Path]) -> CallPaths:
-        calls = self.calls_by_directory
+    def extend_paths(
+        self, paths: CallPaths, seen: frozenset[Path], calls: dict[Path, tuple[Path, ...]]
+    ) -> CallPaths:
         return {
             call: path + (call,)
             for path in paths.values()
@@ -95,10 +96,11 @@ class ModuleGraph:
 
     def find_call_path(self, start: Path, target: Path) -> tuple[Path, ...] | None:
         paths: CallPaths = {start: (start,)}
+        calls = self.calls_by_directory
         seen = frozenset(paths)
         while paths and target not in paths:
-            paths = self.extend_paths(paths, seen)
-            seen |= paths.keys()
+            paths = self.extend_paths(paths, seen, calls)
+            seen = frozenset(seen | paths.keys())
 
         return paths.get(target)
 

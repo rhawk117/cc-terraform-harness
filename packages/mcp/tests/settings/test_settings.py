@@ -31,17 +31,17 @@ class TestLoadSettings:
     def test_command_line_wins_over_environment(self, project_root: Path) -> None:
         environ = {
             f'{ENV_PREFIX}PROJECT_ROOT': str(project_root),
-            f'{ENV_PREFIX}SHOW_TIMEOUT_SECONDS': '5',
+            f'{ENV_PREFIX}LINT_TIMEOUT_SECONDS': '5',
         }
 
-        loaded = load_settings(['--show-timeout-seconds', '9'], environ)
+        loaded = load_settings(['--lint-timeout-seconds', '9'], environ)
 
-        assert loaded.show_timeout_seconds == 9
+        assert loaded.lint_timeout_seconds == 9
 
     def test_ignores_unprefixed_environment(self, project_root: Path) -> None:
-        loaded = load_settings(['--project-root', str(project_root)], {'SHOW_TIMEOUT_SECONDS': '1'})
+        loaded = load_settings(['--project-root', str(project_root)], {'LINT_TIMEOUT_SECONDS': '1'})
 
-        assert loaded.show_timeout_seconds == 60.0
+        assert loaded.lint_timeout_seconds == 120.0
 
     def test_rejects_output_budget_over_the_hard_maximum(self, project_root: Path) -> None:
         argv = ['--project-root', str(project_root), '--output-budget-bytes', '65537']
@@ -50,11 +50,11 @@ class TestLoadSettings:
             load_settings(argv, {})
 
     def test_ignores_unknown_prefixed_environment(self, project_root: Path) -> None:
-        environ = {f'{ENV_PREFIX}TYPO': '1', f'{ENV_PREFIX}SHOW_TIMEOUT_SECONDS': '7'}
+        environ = {f'{ENV_PREFIX}TYPO': '1', f'{ENV_PREFIX}LINT_TIMEOUT_SECONDS': '7'}
 
         loaded = load_settings(['--project-root', str(project_root)], environ)
 
-        assert loaded.show_timeout_seconds == 7
+        assert loaded.lint_timeout_seconds == 7
 
     def test_maximum_is_a_setting_the_budget_is_checked_against(self, project_root: Path) -> None:
         environ = {

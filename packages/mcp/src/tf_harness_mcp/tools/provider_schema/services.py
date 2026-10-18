@@ -141,7 +141,7 @@ def read_declared_providers(indexer: BlockIndexer, module: Path) -> RequiredProv
     }
 
 
-def read_attributes(level: JsonObject) -> list[AttributeEntry]:
+def read_schema_attributes(level: JsonObject) -> list[AttributeEntry]:
     return [
         make_attribute(name, attribute) for name, attribute in level.get('attributes', {}).items()
     ]
@@ -165,7 +165,7 @@ def create_schema_level(
         provider=provider.address,
         version=locked_level.release.version,
         constraint=provider.constraint,
-        attributes=read_attributes(level),
+        attributes=read_schema_attributes(level),
         blocks=read_blocks(level),
     )
 

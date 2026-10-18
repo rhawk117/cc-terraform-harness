@@ -1,8 +1,6 @@
 """Block index over tree-sitter-hcl and the local module graph built from it."""
 
-import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import tree_sitter_hcl
@@ -22,6 +20,8 @@ from tf_harness_mcp.structure.errors import HclSyntaxError, UnreadableFileError
 from tf_harness_mcp.structure.policy import LocalSourcePolicy
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tree_sitter import Node
 
     from tf_harness_mcp.structure.errors import FileProblem
@@ -210,10 +210,10 @@ def index_module(root: Path, directory: Path) -> ModuleIndex:
 
 def find_module_directories(root: Path) -> tuple[Path, ...]:
     found: list[Path] = []
-    for current, dirnames, filenames in os.walk(root):
+    for current, dirnames, filenames in root.walk():
         dirnames[:] = sorted(name for name in dirnames if not name.startswith('.'))
         if any(name.endswith('.tf') for name in filenames):
-            found.append(Path(current))
+            found.append(current)
 
     return tuple(found)
 

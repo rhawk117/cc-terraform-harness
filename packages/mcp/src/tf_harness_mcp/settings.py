@@ -42,7 +42,6 @@ def default_schema_cache_dir() -> Path:
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix=ENV_PREFIX,
         cli_parse_args=False,
         cli_kebab_case=True,
         cli_exit_on_error=False,
@@ -51,7 +50,6 @@ class Settings(BaseSettings):
 
     project_root: DirectoryPath
     validate_timeout_seconds: PositiveFloat = 120.0
-    show_timeout_seconds: PositiveFloat = 60.0
     lint_timeout_seconds: PositiveFloat = 120.0
     schema_timeout_seconds: PositiveFloat = 60.0
     git_timeout_seconds: PositiveFloat = 30.0

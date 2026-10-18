@@ -66,7 +66,7 @@ ignore = [
     "T201",
     "any-type",
     "shebang-missing-executable-file",
-    "async-function-with-timeout",
+    "async-function-with-timeout",  # CommandRunner.run takes each command's timeout from Settings per call; anyio.fail_after wraps the process inside the runner
 ]
 
 

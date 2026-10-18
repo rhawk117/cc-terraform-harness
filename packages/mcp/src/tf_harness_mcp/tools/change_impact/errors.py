@@ -32,6 +32,3 @@ class ChangedFileOutsideRootError(HarnessError):
     def __init__(self, *, path: Path) -> None:
         self.path = path
         super().__init__(f'{path} resolves outside the project root and was not read')
-
-
-type ChangeSetProblem = InvalidBaseRefError | BaseRefNotFoundError | GitCommandFailedError

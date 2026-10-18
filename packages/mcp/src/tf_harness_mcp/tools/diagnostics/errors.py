@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-class DirectoryNotFoundError(HarnessError):
+class DirectoryExpectedError(HarnessError):
     def __init__(self, *, path: Path) -> None:
         self.path = path
         super().__init__(f'not an existing directory: {path}')

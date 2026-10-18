@@ -27,7 +27,7 @@ from tf_harness_mcp.tools.change_impact.policy import (
     normalize_expression,
 )
 from tf_harness_mcp.tools.change_impact.repository import GitRepository
-from tf_harness_mcp.tools.diagnostics.errors import DirectoryNotFoundError
+from tf_harness_mcp.tools.diagnostics.errors import DirectoryExpectedError
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -198,7 +198,7 @@ class ChangeImpactTool:
     def resolve_directory(self, path: containment.ProjectPath) -> Path:
         resolved = containment.resolve_project_path(self.root, path)
         if not resolved.is_dir():
-            raise DirectoryNotFoundError(path=resolved)
+            raise DirectoryExpectedError(path=resolved)
 
         return resolved
 

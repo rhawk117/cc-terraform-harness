@@ -10,7 +10,7 @@ from tf_harness_mcp.policies.budget import create_output_budget
 from tf_harness_mcp.runner.domain import Command
 from tf_harness_mcp.runner.errors import CommandNotFoundError
 from tf_harness_mcp.tools.diagnostics.domain import CheckReport, Finding
-from tf_harness_mcp.tools.diagnostics.errors import DirectoryNotFoundError
+from tf_harness_mcp.tools.diagnostics.errors import DirectoryExpectedError
 from tf_harness_mcp.tools.diagnostics.schemas import TflintOutput, ValidateOutput
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from tf_harness_mcp.policies.budget import OutputBudget
     from tf_harness_mcp.runner.domain import CommandResult, CommandRunner
     from tf_harness_mcp.settings import Settings
-    from tf_harness_mcp.tools.diagnostics.domain import Check
+    from tf_harness_mcp.tools.diagnostics.domain import Check, CheckStatus
 
 FMT_UNFORMATTED_EXIT = 3
 
@@ -31,11 +31,11 @@ def parse_output[Model: BaseModel](model: type[Model], result: CommandResult) ->
         return None
 
 
-def get_directory_problem(directory: Path) -> DirectoryNotFoundError | None:
+def get_directory_problem(directory: Path) -> DirectoryExpectedError | None:
     if directory.is_dir():
         return None
 
-    return DirectoryNotFoundError(path=directory)
+    return DirectoryExpectedError(path=directory)
 
 
 def create_failure_report(name: str, result: CommandResult) -> CheckReport:
@@ -88,7 +88,8 @@ class ValidateCheck:
             )
             for diagnostic in output.diagnostics
         ]
-        return CheckReport(status='passed' if output.valid else 'failed', findings=findings)
+        status: CheckStatus = 'passed' if output.valid else 'failed'
+        return CheckReport(status=status, findings=findings)
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
