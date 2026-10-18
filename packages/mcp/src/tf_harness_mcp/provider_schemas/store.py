@@ -1,4 +1,4 @@
-"""Disk cache of provider schemas, one file per block, and the lock file that keys it."""
+"""Disk cache of provider schemas, one file per block."""
 
 import json
 from dataclasses import dataclass
@@ -6,59 +6,20 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 
-from tf_harness_mcp.provider_schemas.errors import LockFileMissingError, SchemaCacheWriteError
-from tf_harness_mcp.structure.services import create_block_indexer
+from tf_harness_mcp.provider_schemas.errors import SchemaCacheWriteError
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from tf_harness_mcp.provider_schemas.domain import (
         JsonObject,
-        LockedVersions,
         ProviderRelease,
         SchemaKind,
         StoredSchema,
     )
-    from tf_harness_mcp.provider_schemas.errors import LockFileProblem
-    from tf_harness_mcp.structure.services import FileIndex
 
-LOCK_FILE_NAME = '.terraform.lock.hcl'
 STAGING_PREFIX = '.partial-'
 PROVIDER_FILE_NAME = 'provider.json'
-
-
-def lock_file_path(module: Path) -> Path:
-    return module.joinpath(LOCK_FILE_NAME)
-
-
-def read_provider_versions(index: FileIndex) -> LockedVersions:
-    entries = [
-        entry for entry in index.entries if entry.block.kind == 'provider' and entry.block.labels
-    ]
-    versions = {entry.block.labels[0]: entry.get_attribute('version') for entry in entries}
-    return {
-        address: attribute.string
-        for address, attribute in versions.items()
-        if attribute and attribute.string is not None
-    }
-
-
-@dataclass(slots=True, kw_only=True, frozen=True)
-class LockFileRead:
-    versions: LockedVersions
-    problem: LockFileProblem | None = None
-
-
-def read_lock_file(module: Path) -> LockFileRead:
-    path = lock_file_path(module)
-    if not path.is_file():
-        return LockFileRead(versions={}, problem=LockFileMissingError(path=path))
-
-    indexed = create_block_indexer(module).index_file(path)
-    if indexed.problem:
-        return LockFileRead(versions={}, problem=indexed.problem)
-
-    return LockFileRead(versions=read_provider_versions(indexed))
 
 
 def schema_relative_path(kind: SchemaKind, type_name: str | None) -> Path:

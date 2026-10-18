@@ -18,7 +18,8 @@ from tf_harness_mcp.provider_schemas.policy import (
     SchemaRequestPolicy,
     TypeNamePolicy,
 )
-from tf_harness_mcp.provider_schemas.store import SchemaStore, lock_file_path, read_lock_file
+from tf_harness_mcp.provider_schemas.repository import lock_file_path, read_lock_file
+from tf_harness_mcp.provider_schemas.store import SchemaStore
 from tf_harness_mcp.runner.domain import Command
 
 if TYPE_CHECKING:
