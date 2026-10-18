@@ -155,6 +155,12 @@ class BlockIndexer:
         except OSError:
             return FileIndex(blocks=(), problem=UnreadableFileError(path=path))
 
+        return self.index_content(content, path)
+
+    def index_text(self, text: str, path: Path) -> FileIndex:
+        return self.index_content(text.encode(), path)
+
+    def index_content(self, content: bytes, path: Path) -> FileIndex:
         tree = self.parser.parse(content)
         if tree.root_node.has_error:
             return FileIndex(blocks=(), problem=HclSyntaxError(path=path))

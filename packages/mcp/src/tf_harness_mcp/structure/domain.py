@@ -42,6 +42,9 @@ class ModuleNode:
     calls: tuple[Path, ...]
 
 
+type CallPaths = dict[Path, tuple[Path, ...]]
+
+
 @dataclass(slots=True, kw_only=True, frozen=True)
 class ModuleGraph:
     root: Path
@@ -56,3 +59,29 @@ class ModuleGraph:
         called = self.called_directories
         directories = (module.index.directory for module in self.modules)
         return tuple(directory for directory in directories if directory not in called)
+
+    @property
+    def calls_by_directory(self) -> dict[Path, tuple[Path, ...]]:
+        return {module.index.directory: module.calls for module in self.modules}
+
+    def extend_paths(self, paths: CallPaths, seen: frozenset[Path]) -> CallPaths:
+        calls = self.calls_by_directory
+        return {
+            call: path + (call,)
+            for path in paths.values()
+            for call in calls.get(path[-1], ())
+            if call not in seen
+        }
+
+    def find_call_path(self, start: Path, target: Path) -> tuple[Path, ...] | None:
+        paths: CallPaths = {start: (start,)}
+        seen = frozenset(paths)
+        while paths and target not in paths:
+            paths = self.extend_paths(paths, seen)
+            seen |= paths.keys()
+
+        return paths.get(target)
+
+    def find_root_paths(self, directory: Path) -> tuple[tuple[Path, ...], ...]:
+        paths = (self.find_call_path(root, directory) for root in self.root_modules)
+        return tuple(path for path in paths if path is not None)

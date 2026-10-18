@@ -93,3 +93,69 @@ class TestModuleGraph:
 
         assert copy.resolve() not in {m.index.directory for m in graph.modules}
         assert copy.resolve() not in graph.root_modules
+
+
+class TestModuleGraphRootPaths:
+    @pytest.fixture
+    def chain_graph(self, project_root: Path) -> ModuleGraph:
+        for name, source in (('app', '../mid'), ('mid', '../leaf'), ('leaf', None)):
+            directory = project_root.joinpath(name)
+            directory.mkdir()
+            body = module_call(source) if source else EMPTY_MODULE
+            directory.joinpath('main.tf').write_text(body)
+        return build_module_graph(project_root)
+
+    @pytest.fixture
+    def shortcut_graph(self, project_root: Path) -> ModuleGraph:
+        sources = {'app': ('../mid', '../leaf'), 'mid': ('../leaf',), 'leaf': ()}
+        for name, calls in sources.items():
+            directory = project_root.joinpath(name)
+            directory.mkdir()
+            body = ''.join(module_call(call) for call in calls) or EMPTY_MODULE
+            directory.joinpath('main.tf').write_text(body)
+        return build_module_graph(project_root)
+
+    @pytest.fixture
+    def cycle_graph(self, project_root: Path) -> ModuleGraph:
+        for name, source in (('a', '../b'), ('b', '../a')):
+            directory = project_root.joinpath(name)
+            directory.mkdir()
+            directory.joinpath('main.tf').write_text(module_call(source))
+        return build_module_graph(project_root)
+
+    def test_path_runs_from_the_root_through_each_call(
+        self, project_root: Path, chain_graph: ModuleGraph
+    ) -> None:
+        names = ('app', 'mid', 'leaf')
+        expected = tuple(project_root.joinpath(name).resolve() for name in names)
+
+        assert chain_graph.find_root_paths(expected[-1]) == (expected,)
+
+    def test_a_root_is_its_own_one_step_path(
+        self, project_root: Path, chain_graph: ModuleGraph
+    ) -> None:
+        app = project_root.joinpath('app').resolve()
+
+        assert chain_graph.find_root_paths(app) == ((app,),)
+
+    def test_the_shortest_path_wins(self, project_root: Path, shortcut_graph: ModuleGraph) -> None:
+        app = project_root.joinpath('app').resolve()
+        leaf = project_root.joinpath('leaf').resolve()
+
+        assert shortcut_graph.find_root_paths(leaf) == ((app, leaf),)
+
+    def test_a_directory_outside_the_graph_has_no_path(
+        self, project_root: Path, chain_graph: ModuleGraph
+    ) -> None:
+        assert chain_graph.find_root_paths(project_root.joinpath('missing').resolve()) == ()
+
+    def test_a_cycle_has_no_root_and_the_walk_ends(
+        self, project_root: Path, cycle_graph: ModuleGraph
+    ) -> None:
+        assert cycle_graph.find_root_paths(project_root.joinpath('a').resolve()) == ()
+        assert (
+            cycle_graph.find_call_path(
+                project_root.joinpath('a').resolve(), project_root.joinpath('zzz').resolve()
+            )
+            is None
+        )
