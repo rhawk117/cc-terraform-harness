@@ -1,5 +1,7 @@
 """Settings for the tf-harness MCP server, read from the environment and the command line."""
 
+import os
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, override
 
 from pydantic import DirectoryPath, Field, PositiveFloat, PositiveInt, model_validator
@@ -25,6 +27,19 @@ def default_plan_read_cap() -> int:
     return 50 * 1024 * 1024
 
 
+def derive_schema_cache_dir(environ: Mapping[str, str]) -> Path:
+    xdg_cache_home = Path(environ.get('XDG_CACHE_HOME', ''))
+    if xdg_cache_home.is_absolute():
+        return xdg_cache_home.joinpath('tf-harness', 'provider-schemas')
+
+    home = Path(environ.get('HOME') or Path.home())
+    return home.joinpath('.cache', 'tf-harness', 'provider-schemas')
+
+
+def default_schema_cache_dir() -> Path:
+    return derive_schema_cache_dir(os.environ)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix=ENV_PREFIX,
@@ -38,6 +53,8 @@ class Settings(BaseSettings):
     validate_timeout_seconds: PositiveFloat = 120.0
     show_timeout_seconds: PositiveFloat = 60.0
     lint_timeout_seconds: PositiveFloat = 120.0
+    schema_timeout_seconds: PositiveFloat = 60.0
+    schema_cache_dir: Path = Field(default_factory=default_schema_cache_dir)
     output_budget_bytes: PositiveInt = Field(default_factory=default_output_budget)
     output_budget_max_bytes: PositiveInt = Field(default_factory=default_output_budget_max)
     plan_read_cap_bytes: PositiveInt = Field(default_factory=default_plan_read_cap)
@@ -70,5 +87,8 @@ def read_prefixed_environment(environ: Mapping[str, str]) -> dict[str, str]:
 
 
 def load_settings(argv: Sequence[str], environ: Mapping[str, str]) -> Settings:
-    from_environment: dict[str, Any] = dict(read_prefixed_environment(environ))
+    from_environment: dict[str, Any] = {
+        'schema_cache_dir': derive_schema_cache_dir(environ),
+        **read_prefixed_environment(environ),
+    }
     return Settings(_cli_parse_args=list(argv), **from_environment)

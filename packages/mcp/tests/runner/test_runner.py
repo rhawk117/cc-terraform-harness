@@ -43,6 +43,7 @@ def allowed_command_cases() -> pytest.MarkDecorator:
         'fmt-check-recursive': terraform_command('fmt', '-check', '-recursive', '-no-color'),
         'validate': terraform_command('validate'),
         'validate-json': terraform_command('validate', '-json', '-no-color'),
+        'providers-schema-json': terraform_command('providers', 'schema', '-json'),
         'tflint': Command(argv=('tflint',)),
         'tflint-json': Command(argv=('tflint', '--format=json', '--recursive')),
     }
@@ -62,6 +63,13 @@ def refused_command_cases() -> pytest.MarkDecorator:
         'fmt-without-check': terraform_command('fmt'),
         'fmt-write-only': terraform_command('fmt', '-write=true'),
         'fmt-check-not-first': terraform_command('fmt', '-recursive', '-check'),
+        'providers': terraform_command('providers'),
+        'providers-lock': terraform_command('providers', 'lock'),
+        'providers-mirror': terraform_command(
+            'providers', 'mirror', '-platform=linux_amd64', 'out'
+        ),
+        'providers-schema-without-json': terraform_command('providers', 'schema'),
+        'providers-json-without-schema': terraform_command('providers', '-json'),
         'tflint-fix': Command(argv=('tflint', '--fix')),
         'tflint-fix-last': Command(argv=('tflint', '--format=json', '--fix')),
         'tflint-fix-with-value': Command(argv=('tflint', '--fix=true')),

@@ -23,6 +23,7 @@ def default_read_only_commands() -> tuple[AllowedCommand, ...]:
         AllowedCommand(prefix=('terraform', 'version')),
         AllowedCommand(prefix=('terraform', 'fmt', '-check')),
         AllowedCommand(prefix=('terraform', 'validate')),
+        AllowedCommand(prefix=('terraform', 'providers', 'schema', '-json')),
         AllowedCommand(prefix=('tflint',), forbidden_flags=('--fix', '--init')),
     )
 

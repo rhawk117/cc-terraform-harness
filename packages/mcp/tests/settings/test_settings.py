@@ -1,11 +1,8 @@
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
-from tf_harness_mcp.settings import ENV_PREFIX, load_settings
-
-if TYPE_CHECKING:
-    from pathlib import Path
+from tf_harness_mcp.settings import ENV_PREFIX, Settings, load_settings
 
 pytestmark = pytest.mark.unit
 
@@ -88,3 +85,65 @@ class TestLoadSettings:
 
         with pytest.raises(ValidationError):
             load_settings(['--project-root', str(missing)], {})
+
+
+class TestSchemaSettings:
+    xdg_cache_home = Path('/xdg/cache')
+    home = Path('/home/someone')
+
+    def load_cache_dir(self, project_root: Path, environ: dict[str, str], *args: str) -> Path:
+        argv = ['--project-root', str(project_root), *args]
+        return load_settings(argv, environ).schema_cache_dir
+
+    def test_defaults_schema_timeout(self, project_root: Path) -> None:
+        loaded = load_settings(['--project-root', str(project_root)], {})
+
+        assert loaded.schema_timeout_seconds == 60.0
+
+    def test_defaults_under_xdg_cache_home(self, project_root: Path) -> None:
+        environ = {'XDG_CACHE_HOME': str(self.xdg_cache_home), 'HOME': str(self.home)}
+
+        cache_dir = self.load_cache_dir(project_root, environ)
+
+        assert cache_dir == self.xdg_cache_home.joinpath('tf-harness', 'provider-schemas')
+
+    @pytest.mark.parametrize('xdg_cache_home', ['', 'relative/cache'])
+    def test_defaults_under_home_when_xdg_cache_home_is_empty_or_relative(
+        self, project_root: Path, xdg_cache_home: str
+    ) -> None:
+        environ = {'XDG_CACHE_HOME': xdg_cache_home, 'HOME': str(self.home)}
+
+        cache_dir = self.load_cache_dir(project_root, environ)
+
+        assert cache_dir == self.home.joinpath('.cache', 'tf-harness', 'provider-schemas')
+
+    def test_defaults_under_home_when_xdg_cache_home_is_unset(self, project_root: Path) -> None:
+        cache_dir = self.load_cache_dir(project_root, {'HOME': str(self.home)})
+
+        assert cache_dir == self.home.joinpath('.cache', 'tf-harness', 'provider-schemas')
+
+    def test_environment_overrides_the_default(self, project_root: Path) -> None:
+        environ = {
+            'XDG_CACHE_HOME': str(self.xdg_cache_home),
+            f'{ENV_PREFIX}SCHEMA_CACHE_DIR': '/set/by/env',
+        }
+
+        assert self.load_cache_dir(project_root, environ) == Path('/set/by/env')
+
+    def test_command_line_overrides_the_environment(self, project_root: Path) -> None:
+        environ = {f'{ENV_PREFIX}SCHEMA_CACHE_DIR': '/set/by/env'}
+
+        cache_dir = self.load_cache_dir(project_root, environ, '--schema-cache-dir', '/set/by/cli')
+
+        assert cache_dir == Path('/set/by/cli')
+
+    def test_accepts_a_directory_that_does_not_exist(self, project_root: Path) -> None:
+        missing = project_root.joinpath('not', 'yet')
+
+        cache_dir = self.load_cache_dir(project_root, {}, '--schema-cache-dir', str(missing))
+
+        assert cache_dir == missing
+        assert not missing.exists()
+
+    def test_settings_built_with_only_project_root_validate(self, project_root: Path) -> None:
+        assert Settings(project_root=project_root).schema_cache_dir.is_absolute()
