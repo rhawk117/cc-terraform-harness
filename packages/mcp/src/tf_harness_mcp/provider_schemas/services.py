@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from tf_harness_mcp.provider_schemas.errors import SchemaCacheWriteError, SchemaProblem
     from tf_harness_mcp.runner.domain import CommandRunner
 
-SCHEMA_ARGV = ('terraform', 'providers', 'schema', '-json')
+SCHEMA_ARGV = ('terraform', 'providers', 'schema', '-json', '-no-color')
 STDERR_TAIL_CHARS = 500
 
 
