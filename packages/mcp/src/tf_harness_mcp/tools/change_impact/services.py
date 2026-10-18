@@ -5,9 +5,6 @@ from dataclasses import asdict, dataclass
 from operator import attrgetter
 from typing import TYPE_CHECKING, Any
 
-from mcp.server.mcpserver.exceptions import ToolError
-
-from tf_harness_mcp.errors import HarnessError
 from tf_harness_mcp.policies import containment
 from tf_harness_mcp.policies.budget import create_output_budget
 from tf_harness_mcp.structure.services import (
@@ -35,6 +32,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
+    from tf_harness_mcp.errors import HarnessError
     from tf_harness_mcp.policies.budget import OutputBudget
     from tf_harness_mcp.runner.domain import CommandRunner
     from tf_harness_mcp.settings import Settings
@@ -239,12 +237,8 @@ class ChangeImpactTool:
         its shortest module call path. Reads only git and the files; no plan or state.
         The path is relative to the project root or absolute inside it.
         """
-        try:
-            directory = self.resolve_directory(path)
-            result = await self.analyze(directory, base_ref)
-        except HarnessError as err:
-            raise ToolError(str(err)) from err
-
+        directory = self.resolve_directory(path)
+        result = await self.analyze(directory, base_ref)
         return self.budget.apply(asdict(result))
 
 

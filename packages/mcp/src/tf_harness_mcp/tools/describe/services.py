@@ -3,9 +3,6 @@
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
-from mcp.server.mcpserver.exceptions import ToolError
-
-from tf_harness_mcp.errors import HarnessError
 from tf_harness_mcp.policies import containment
 from tf_harness_mcp.policies.budget import create_output_budget
 from tf_harness_mcp.structure.services import create_block_indexer
@@ -189,11 +186,8 @@ class DescribeTool:
         cannot be read or do not parse are reported under problems. The path is relative to the
         project root or absolute inside it.
         """
-        try:
-            resolved = containment.resolve_project_path(self.root, path)
-            return self.budget.apply(asdict(self.describe_target(resolved)))
-        except HarnessError as err:
-            raise ToolError(str(err)) from err
+        resolved = containment.resolve_project_path(self.root, path)
+        return self.budget.apply(asdict(self.describe_target(resolved)))
 
 
 def create_describe_tool(settings: Settings) -> DescribeTool:

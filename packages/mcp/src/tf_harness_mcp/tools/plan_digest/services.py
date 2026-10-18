@@ -4,10 +4,8 @@ from collections import Counter
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
-from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import ValidationError
 
-from tf_harness_mcp.errors import HarnessError
 from tf_harness_mcp.policies import containment
 from tf_harness_mcp.policies.budget import create_output_budget
 from tf_harness_mcp.tools.plan_digest.domain import NO_OP, REPLACEMENT_ACTIONS, ResourceChange
@@ -92,11 +90,8 @@ class PlanDigestTool:
         changes. The path is relative to the project root or absolute inside it. A binary plan
         file or state JSON is refused; render it with `terraform show -json` first.
         """
-        try:
-            resolved, raw = self.read_plan(path)
-            return self.budget.apply(digest_plan(resolved, parse_plan(resolved, raw)))
-        except HarnessError as err:
-            raise ToolError(str(err)) from err
+        resolved, raw = self.read_plan(path)
+        return self.budget.apply(digest_plan(resolved, parse_plan(resolved, raw)))
 
 
 def create_plan_digest_tool(settings: Settings) -> PlanDigestTool:

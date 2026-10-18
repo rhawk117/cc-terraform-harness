@@ -3,9 +3,6 @@
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
-from mcp.server.mcpserver.exceptions import ToolError
-
-from tf_harness_mcp.errors import HarnessError
 from tf_harness_mcp.policies import containment
 from tf_harness_mcp.policies.budget import create_output_budget
 from tf_harness_mcp.provider_schemas.domain import (  # noqa: TC001 - the MCP SDK evaluates the tool annotations
@@ -238,18 +235,10 @@ class ProviderSchemaTool:
         level. Needs the module initialized, with a .terraform.lock.hcl entry for the provider.
         The path is relative to the project root or absolute inside it.
         """
-        try:
-            module = containment.resolve_project_path(self.root, path)
-        except HarnessError as err:
-            raise ToolError(str(err)) from err
-
-        try:
-            result = await self.read_level(
-                LevelRequest(module=module, kind=kind, type_name=type, block=block)
-            )
-        except HarnessError as err:
-            raise ToolError(str(err)) from err
-
+        module = containment.resolve_project_path(self.root, path)
+        result = await self.read_level(
+            LevelRequest(module=module, kind=kind, type_name=type, block=block)
+        )
         return self.budget.apply(asdict(result))
 
 

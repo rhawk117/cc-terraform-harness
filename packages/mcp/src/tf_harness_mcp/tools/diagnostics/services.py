@@ -3,10 +3,8 @@
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
-from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import BaseModel, ValidationError
 
-from tf_harness_mcp.errors import HarnessError
 from tf_harness_mcp.policies import containment
 from tf_harness_mcp.policies.budget import create_output_budget
 from tf_harness_mcp.runner.domain import Command
@@ -165,13 +163,10 @@ class DiagnosticsTool:
         and line when the tool reports one. A check whose binary is not on PATH is skipped with
         the reason. The directory is relative to the project root or absolute inside it.
         """
-        try:
-            resolved = self.resolve_directory(directory)
-            reports = await self.service.run(resolved)
-            checks = {name: asdict(report) for name, report in reports.items()}
-            return self.budget.apply({'directory': str(resolved), 'checks': checks})
-        except HarnessError as err:
-            raise ToolError(str(err)) from err
+        resolved = self.resolve_directory(directory)
+        reports = await self.service.run(resolved)
+        checks = {name: asdict(report) for name, report in reports.items()}
+        return self.budget.apply({'directory': str(resolved), 'checks': checks})
 
 
 def create_diagnostics_tool(runner: CommandRunner, settings: Settings) -> DiagnosticsTool:
