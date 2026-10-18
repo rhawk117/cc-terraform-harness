@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from mcp.server.mcpserver import MCPServer
+    from tf_harness_mcp.runner.tests.recording import RecordingCommandRunner
 
 
 pytest_plugins = ['tf_harness_mcp.runner.tests.recording']
@@ -26,8 +27,8 @@ def settings(project_root: Path) -> Settings:
 
 
 @pytest.fixture
-def server(settings: Settings) -> MCPServer:
-    return create_server(settings)
+def server(settings: Settings, recording_runner: RecordingCommandRunner) -> MCPServer:
+    return create_server(settings, recording_runner)
 
 
 @pytest.fixture
