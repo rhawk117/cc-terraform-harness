@@ -36,7 +36,6 @@ class AnyioCommandRunner:
                 completed = await anyio.run_process(
                     list(command.argv),
                     env=environment,
-                    # The server's own stdin is the MCP stdio channel; a child must not read it.
                     stdin=subprocess.DEVNULL,
                     check=False,
                 )
