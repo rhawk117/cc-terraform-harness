@@ -25,6 +25,16 @@ def default_read_only_commands() -> tuple[AllowedCommand, ...]:
         AllowedCommand(prefix=('terraform', 'validate')),
         AllowedCommand(prefix=('terraform', 'providers', 'schema', '-json')),
         AllowedCommand(prefix=('tflint',), forbidden_flags=('--fix', '--init')),
+        AllowedCommand(
+            prefix=('git', 'rev-parse', '--verify', '--quiet', '--end-of-options'),
+        ),
+        AllowedCommand(prefix=('git', 'merge-base')),
+        AllowedCommand(
+            prefix=('git', 'diff', '--no-ext-diff', '--no-textconv'),
+            forbidden_flags=('--output', '--ext-diff', '--textconv'),
+        ),
+        AllowedCommand(prefix=('git', 'ls-files', '--others', '--exclude-standard')),
+        AllowedCommand(prefix=('git', 'cat-file', 'blob')),
     )
 
 

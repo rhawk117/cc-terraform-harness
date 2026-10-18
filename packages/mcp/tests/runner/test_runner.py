@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 READ_STDIN = 'import sys; print(repr(sys.stdin.read()))'
 PRINT_ENV = 'import os, sys; print(os.environ.get(sys.argv[1], "unset"))'
 PRINT_CWD = 'import pathlib; print(pathlib.Path.cwd().resolve())'
+GIT_DIFF_PINS = ('diff', '--no-ext-diff', '--no-textconv', '--no-color', '--no-prefix')
 
 
 def python_options() -> ReadOnlyOptions:
@@ -35,6 +36,10 @@ def terraform_command(*args: str) -> Command:
     return Command(argv=('terraform', *args))
 
 
+def git_command(*args: str) -> Command:
+    return Command(argv=('git', *args))
+
+
 def allowed_command_cases() -> pytest.MarkDecorator:
     names = {
         'version': terraform_command('version'),
@@ -46,6 +51,13 @@ def allowed_command_cases() -> pytest.MarkDecorator:
         'providers-schema-json': terraform_command('providers', 'schema', '-json'),
         'tflint': Command(argv=('tflint',)),
         'tflint-json': Command(argv=('tflint', '--format=json', '--recursive')),
+        'git-resolve': git_command(
+            'rev-parse', '--verify', '--quiet', '--end-of-options', 'main^{commit}'
+        ),
+        'git-merge-base': git_command('merge-base', 'a' * 40, 'HEAD'),
+        'git-diff': git_command(*GIT_DIFF_PINS, '--name-status', '-z', 'b' * 40, '--', '*.tf'),
+        'git-ls-files': git_command('ls-files', '--others', '--exclude-standard', '-z'),
+        'git-cat-file': git_command('cat-file', 'blob', 'b' * 40 + ':./main.tf'),
     }
     params: list[ParameterSet] = [pytest.param(cmd, id=name) for name, cmd in names.items()]
     return pytest.mark.parametrize('command', params)
@@ -75,6 +87,22 @@ def refused_command_cases() -> pytest.MarkDecorator:
         'tflint-fix-with-value': Command(argv=('tflint', '--fix=true')),
         'tflint-init': Command(argv=('tflint', '--init')),
         'tflint-init-last': Command(argv=('tflint', '--recursive', '--init')),
+        'git-diff-output': git_command(*GIT_DIFF_PINS, '--output=x', 'HEAD'),
+        'git-diff-output-separate': git_command(*GIT_DIFF_PINS, '--output', 'x', 'HEAD'),
+        'git-diff-output-last': git_command(*GIT_DIFF_PINS, 'HEAD', '--output=x'),
+        'git-diff-ext-diff': git_command(*GIT_DIFF_PINS, '--ext-diff', 'HEAD'),
+        'git-diff-textconv': git_command(*GIT_DIFF_PINS, '--textconv', 'HEAD'),
+        'git-diff-without-pins': git_command('diff', 'HEAD'),
+        'git-diff-without-textconv-pin': git_command('diff', '--no-ext-diff', 'HEAD'),
+        'git-diff-pins-not-first': git_command('diff', 'HEAD', *GIT_DIFF_PINS[1:]),
+        'git-global-option': Command(argv=('git', '-C', 'x', 'diff', *GIT_DIFF_PINS[1:])),
+        'git-config-option': Command(argv=('git', '-c', 'core.pager=x', 'merge-base', 'a', 'b')),
+        'git-push': git_command('push'),
+        'git-checkout': git_command('checkout', 'main'),
+        'git-config': git_command('config', 'user.name', 'x'),
+        'git-rev-parse-without-pins': git_command('rev-parse', 'HEAD'),
+        'git-ls-files-without-others': git_command('ls-files'),
+        'git-cat-file-without-blob': git_command('cat-file', '-p', 'HEAD'),
     }
     params: list[ParameterSet] = [pytest.param(cmd, id=name) for name, cmd in names.items()]
     return pytest.mark.parametrize('command', params)
