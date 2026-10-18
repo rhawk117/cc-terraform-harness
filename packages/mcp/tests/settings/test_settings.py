@@ -11,10 +11,11 @@ pytestmark = pytest.mark.unit
 
 
 class TestLoadSettings:
-    def test_defaults_budget_and_plan_cap(self, project_root: Path) -> None:
+    def test_defaults_budget_maximum_and_plan_cap(self, project_root: Path) -> None:
         loaded = load_settings(['--project-root', str(project_root)], {})
 
         assert loaded.output_budget_bytes == 16 * 1024
+        assert loaded.output_budget_max_bytes == 64 * 1024
         assert loaded.plan_read_cap_bytes == 50 * 1024 * 1024
 
     def test_reads_values_from_environment(self, project_root: Path) -> None:
@@ -50,6 +51,33 @@ class TestLoadSettings:
 
         with pytest.raises(ValidationError):
             load_settings(argv, {})
+
+    def test_ignores_unknown_prefixed_environment(self, project_root: Path) -> None:
+        environ = {f'{ENV_PREFIX}TYPO': '1', f'{ENV_PREFIX}SHOW_TIMEOUT_SECONDS': '7'}
+
+        loaded = load_settings(['--project-root', str(project_root)], environ)
+
+        assert loaded.show_timeout_seconds == 7
+
+    def test_maximum_is_a_setting_the_budget_is_checked_against(self, project_root: Path) -> None:
+        environ = {
+            f'{ENV_PREFIX}PROJECT_ROOT': str(project_root),
+            f'{ENV_PREFIX}OUTPUT_BUDGET_MAX_BYTES': '100000',
+            f'{ENV_PREFIX}OUTPUT_BUDGET_BYTES': '90000',
+        }
+
+        loaded = load_settings([], environ)
+
+        assert loaded.output_budget_bytes == 90000
+
+    def test_rejects_output_budget_over_a_lowered_maximum(self, project_root: Path) -> None:
+        environ = {
+            f'{ENV_PREFIX}PROJECT_ROOT': str(project_root),
+            f'{ENV_PREFIX}OUTPUT_BUDGET_MAX_BYTES': '1000',
+        }
+
+        with pytest.raises(ValidationError):
+            load_settings([], environ)
 
     def test_rejects_missing_project_root(self) -> None:
         with pytest.raises(ValidationError):
