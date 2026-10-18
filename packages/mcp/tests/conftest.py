@@ -25,8 +25,13 @@ def project_root(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def settings(project_root: Path) -> Settings:
-    return Settings(project_root=project_root)
+def schema_cache_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return tmp_path_factory.mktemp('schema-cache')
+
+
+@pytest.fixture
+def settings(project_root: Path, schema_cache_dir: Path) -> Settings:
+    return Settings(project_root=project_root, schema_cache_dir=schema_cache_dir)
 
 
 @pytest.fixture
