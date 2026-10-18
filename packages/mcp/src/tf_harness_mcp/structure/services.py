@@ -64,6 +64,7 @@ def read_block(block: Node, file: Path) -> Block:
 class FileIndex:
     blocks: tuple[Block, ...]
     problem: FileProblem | None
+    root: Node | None = None
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -89,7 +90,8 @@ class BlockIndexer:
 
         body = first_child_of_type(tree.root_node, 'body')
         nodes = (child for child in (body.children if body else ()) if child.type == 'block')
-        return FileIndex(blocks=tuple(read_block(node, path) for node in nodes), problem=None)
+        blocks = tuple(read_block(node, path) for node in nodes)
+        return FileIndex(blocks=blocks, problem=None, root=tree.root_node)
 
     def index_module(self, directory: Path) -> ModuleIndex:
         files = tuple(map(self.index_file, self.select_files(directory)))
