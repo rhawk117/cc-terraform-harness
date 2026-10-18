@@ -92,6 +92,20 @@ class ValidateCheck:
         return CheckReport(status=status, findings=findings)
 
 
+def read_tflint_findings(output: TflintOutput) -> list[Finding]:
+    issues = [
+        Finding(
+            severity=issue.rule.severity,
+            summary=f'{issue.rule.name}: {issue.message}',
+            file=issue.file,
+            line=issue.line,
+        )
+        for issue in output.issues
+    ]
+    errors = [Finding(severity=error.severity, summary=error.message) for error in output.errors]
+    return [*issues, *errors]
+
+
 @dataclass(slots=True, kw_only=True, frozen=True)
 class TflintCheck:
     timeout_seconds: float
@@ -103,19 +117,7 @@ class TflintCheck:
         if output is None:
             return create_failure_report(self.name, result)
 
-        issues = [
-            Finding(
-                severity=issue.rule.severity,
-                summary=f'{issue.rule.name}: {issue.message}',
-                file=issue.file,
-                line=issue.line,
-            )
-            for issue in output.issues
-        ]
-        errors = [
-            Finding(severity=error.severity, summary=error.message) for error in output.errors
-        ]
-        findings = [*issues, *errors]
+        findings = read_tflint_findings(output)
         if findings:
             return CheckReport(status='failed', findings=findings)
 

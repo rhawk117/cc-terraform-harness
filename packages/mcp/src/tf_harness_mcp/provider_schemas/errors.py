@@ -79,4 +79,10 @@ class SchemaCacheWriteError(HarnessError):
         super().__init__(f'the schema cache could not write {path}')
 
 
+class SchemaCacheReadError(HarnessError):
+    def __init__(self, *, path: Path) -> None:
+        self.path = path
+        super().__init__(f'cached provider schema is unreadable: {path}')
+
+
 type LockFileProblem = FileProblem | LockFileMissingError

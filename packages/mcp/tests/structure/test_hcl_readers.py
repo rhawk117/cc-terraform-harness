@@ -51,6 +51,18 @@ def find_entry(index: FileIndex, kind: str) -> BlockEntry:
     return next(entry for entry in index.entries if entry.block.kind == kind)
 
 
+def test_undecodable_source_text_indexes_without_raising(project_root: Path) -> None:
+    path = project_root.joinpath('bad.tf')
+    path.write_bytes(b'variable "region" {\n  description = "caf\xe9 \xff"\n}\n')
+
+    index = create_block_indexer(project_root).index_file(path)
+
+    attribute = find_entry(index, 'variable').get_attribute('description')
+    assert attribute is not None
+    assert attribute.string is not None
+    assert '\ufffd' in attribute.string
+
+
 class TestAttributes:
     def test_attributes_are_listed_in_source_order(self, index: FileIndex) -> None:
         names = [attribute.name for attribute in find_entry(index, 'variable').attributes]

@@ -30,10 +30,20 @@ class AnyioCommandRunner:
         if problem := policy.get_command_problem():
             raise problem
 
+        completed = await self.launch(command, timeout_seconds)
+        return CommandResult(
+            returncode=completed.returncode,
+            stdout=completed.stdout.decode(errors='replace'),
+            stderr=completed.stderr.decode(errors='replace'),
+        )
+
+    async def launch(
+        self, command: Command, timeout_seconds: float
+    ) -> subprocess.CompletedProcess[bytes]:
         environment = {**self.environ, CHECKPOINT_DISABLE: '1'}
         try:
             with anyio.fail_after(timeout_seconds):
-                completed = await anyio.run_process(
+                return await anyio.run_process(
                     list(command.argv),
                     cwd=command.cwd,
                     env=environment,
@@ -49,12 +59,6 @@ class AnyioCommandRunner:
             raise CommandTimeoutError(
                 command=shlex.join(command.argv), timeout_seconds=timeout_seconds
             ) from err
-
-        return CommandResult(
-            returncode=completed.returncode,
-            stdout=completed.stdout.decode(errors='replace'),
-            stderr=completed.stderr.decode(errors='replace'),
-        )
 
 
 def create_command_runner(

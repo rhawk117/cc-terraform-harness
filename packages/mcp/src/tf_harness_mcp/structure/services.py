@@ -31,7 +31,7 @@ OBJECT_ELEMENT_EXPRESSIONS = 2
 
 
 def node_text(node: Node) -> str:
-    return (node.text or b'').decode()
+    return (node.text or b'').decode(errors='replace')
 
 
 def first_child_of_type(node: Node | None, type_name: str) -> Node | None:

@@ -6,7 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 
-from tf_harness_mcp.provider_schemas.errors import SchemaCacheWriteError
+from tf_harness_mcp.provider_schemas.errors import SchemaCacheReadError, SchemaCacheWriteError
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -46,7 +46,10 @@ class SchemaStore:
         if not path.is_file():
             return None
 
-        return json.loads(path.read_text())
+        try:
+            return json.loads(path.read_text())
+        except (json.JSONDecodeError, UnicodeDecodeError) as err:
+            raise SchemaCacheReadError(path=path) from err
 
     def write_release(
         self, release: ProviderRelease, schemas: Iterable[StoredSchema]

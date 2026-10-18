@@ -79,7 +79,13 @@ class PlanDigestTool:
         if size > self.read_cap_bytes:
             raise PlanTooLargeError(path=resolved, size=size, cap=self.read_cap_bytes)
 
-        return resolved, resolved.read_bytes()
+        with resolved.open('rb') as handle:
+            raw = handle.read(self.read_cap_bytes + 1)
+
+        if len(raw) > self.read_cap_bytes:
+            raise PlanTooLargeError(path=resolved, size=len(raw), cap=self.read_cap_bytes)
+
+        return resolved, raw
 
     async def plan_digest(self, path: containment.ProjectPath) -> dict[str, Any]:
         """Summarize one plan JSON document without changing anything.

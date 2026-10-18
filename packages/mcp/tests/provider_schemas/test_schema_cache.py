@@ -6,6 +6,7 @@ from tf_harness_mcp.provider_schemas.errors import (
     LockFileMissingError,
     ProviderNotInSchemaOutputError,
     ProviderNotLockedError,
+    SchemaCacheReadError,
     SchemaCacheWriteError,
     SchemaOutputInvalidError,
     SchemaRunFailedError,
@@ -130,6 +131,19 @@ class TestHit:
         assert schema.release == ProviderRelease(address=AWS, version='6.70.0')
         assert len(harness.runner.calls) == 2
         assert harness.stored_files(harness.release_dir(AWS, '6.70.0')) == AWS_FILES
+
+    @pytest.mark.parametrize('damage', [b'{"truncated":', b'\xff\xfe\x00not utf-8'])
+    async def test_corrupt_schema_cache_is_reported_with_the_file_path(
+        self, harness: CacheHarness, damage: bytes
+    ) -> None:
+        await harness.service.lookup(harness.request_for('resource', 'aws_instance'))
+        cached = harness.release_dir(AWS, '6.69.1').joinpath('resource', 'aws_instance.json')
+        cached.write_bytes(damage)
+
+        with pytest.raises(SchemaCacheReadError) as raised:
+            await harness.service.lookup(harness.request_for('resource', 'aws_instance'))
+
+        assert raised.value.path == cached
 
     async def test_an_unknown_type_at_a_cached_version_is_reported(
         self, harness: CacheHarness
