@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import anyio
 
 from tf_harness_mcp.runner.domain import CommandResult
-from tf_harness_mcp.runner.errors import CommandTimeoutError
+from tf_harness_mcp.runner.errors import CommandNotFoundError, CommandTimeoutError
 from tf_harness_mcp.runner.policy import ReadOnlyCommandPolicy, ReadOnlyOptions
 
 if TYPE_CHECKING:
@@ -40,6 +40,11 @@ class AnyioCommandRunner:
                     stdin=subprocess.DEVNULL,
                     check=False,
                 )
+        except FileNotFoundError as err:
+            if err.filename != command.argv[0]:
+                raise
+
+            raise CommandNotFoundError(command=command.argv[0]) from err
         except TimeoutError as err:
             raise CommandTimeoutError(
                 command=shlex.join(command.argv), timeout_seconds=timeout_seconds

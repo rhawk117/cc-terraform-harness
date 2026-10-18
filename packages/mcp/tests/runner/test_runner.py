@@ -6,7 +6,11 @@ from typing import TYPE_CHECKING
 import anyio
 import pytest
 from tf_harness_mcp.runner.domain import Command
-from tf_harness_mcp.runner.errors import CommandNotAllowedError, CommandTimeoutError
+from tf_harness_mcp.runner.errors import (
+    CommandNotAllowedError,
+    CommandNotFoundError,
+    CommandTimeoutError,
+)
 from tf_harness_mcp.runner.policy import AllowedCommand, ReadOnlyCommandPolicy, ReadOnlyOptions
 from tf_harness_mcp.runner.process import create_command_runner
 
@@ -133,6 +137,30 @@ class TestAnyioCommandRunner:
 
         assert 'time.sleep(30)' in str(raised.value)
         assert raised.value.timeout_seconds == 0.2
+
+
+@pytest.mark.unit
+class TestMissingBinary:
+    timeout = 10.0
+    binary = 'tf-harness-missing-binary'
+
+    @pytest.fixture
+    def runner(self) -> CommandRunner:
+        options = ReadOnlyOptions(commands=(AllowedCommand(prefix=(self.binary,)),))
+        return create_command_runner(options=options)
+
+    async def test_missing_binary_is_named(self, runner: CommandRunner) -> None:
+        with pytest.raises(CommandNotFoundError) as raised:
+            await runner.run(Command(argv=(self.binary,)), self.timeout)
+
+        assert raised.value.command == self.binary
+
+    async def test_missing_working_directory_is_not_a_missing_binary(self, tmp_path: Path) -> None:
+        runner = create_command_runner(options=python_options())
+        command = python_command(PRINT_CWD, cwd=tmp_path.joinpath('absent'))
+
+        with pytest.raises(FileNotFoundError):
+            await runner.run(command, self.timeout)
 
 
 @pytest.mark.unit

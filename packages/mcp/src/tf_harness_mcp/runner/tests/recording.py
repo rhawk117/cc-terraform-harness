@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tf_harness_mcp.errors import HarnessError
+from tf_harness_mcp.runner.errors import CommandNotFoundError
 from tf_harness_mcp.runner.policy import ReadOnlyCommandPolicy, ReadOnlyOptions
 
 if TYPE_CHECKING:
@@ -30,10 +31,14 @@ class RecordedCall:
 class RecordingCommandRunner:
     options: ReadOnlyOptions = field(default_factory=ReadOnlyOptions)
     results: dict[CommandPrefix, CommandResult] = field(default_factory=dict)
+    missing: set[CommandPrefix] = field(default_factory=set)
     calls: list[RecordedCall] = field(default_factory=list)
 
     def script(self, argv: CommandPrefix, result: CommandResult) -> None:
         self.results[argv] = result
+
+    def script_missing_binary(self, argv: CommandPrefix) -> None:
+        self.missing.add(argv)
 
     async def run(self, command: Command, timeout_seconds: float) -> CommandResult:
         policy = ReadOnlyCommandPolicy(command=command, options=self.options)
@@ -41,6 +46,9 @@ class RecordingCommandRunner:
             raise problem
 
         self.calls.append(RecordedCall(command=command, timeout_seconds=timeout_seconds))
+        if command.argv in self.missing:
+            raise CommandNotFoundError(command=command.argv[0])
+
         result = self.results.get(command.argv)
         if result is None:
             raise UnscriptedCommandError(command=shlex.join(command.argv))

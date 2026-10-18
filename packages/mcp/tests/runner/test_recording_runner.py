@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from tf_harness_mcp.runner.domain import Command, CommandResult, CommandRunner
-from tf_harness_mcp.runner.errors import CommandNotAllowedError
+from tf_harness_mcp.runner.errors import CommandNotAllowedError, CommandNotFoundError
 from tf_harness_mcp.runner.tests.recording import RecordedCall, UnscriptedCommandError
 
 if TYPE_CHECKING:
@@ -63,3 +63,13 @@ class TestRecordingCommandRunner:
     ) -> None:
         with pytest.raises(UnscriptedCommandError, match='terraform version'):
             await recording_runner.run(VERSION, 5.0)
+
+    async def test_missing_binary_is_recorded_and_raises_not_found(
+        self, recording_runner: RecordingCommandRunner
+    ) -> None:
+        recording_runner.script_missing_binary(VERSION.argv)
+
+        with pytest.raises(CommandNotFoundError, match='terraform'):
+            await recording_runner.run(VERSION, 5.0)
+
+        assert recording_runner.calls == [RecordedCall(command=VERSION, timeout_seconds=5.0)]
