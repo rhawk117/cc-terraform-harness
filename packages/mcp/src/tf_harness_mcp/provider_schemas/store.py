@@ -10,8 +10,12 @@ from tf_harness_mcp.provider_schemas.errors import LockFileMissingError, SchemaC
 from tf_harness_mcp.structure.services import (
     create_block_indexer,
     first_child_of_type,
+    get_children,
     node_text,
+    read_attributes,
     read_label,
+    read_string,
+    read_value,
 )
 
 if TYPE_CHECKING:
@@ -37,21 +41,12 @@ def lock_file_path(module: Path) -> Path:
     return module.joinpath(LOCK_FILE_NAME)
 
 
-def child_nodes(node: Node | None, type_name: str) -> list[Node]:
-    return [child for child in (node.children if node else ()) if child.type == type_name]
-
-
 def read_string_attribute(block: Node, name: str) -> str | None:
-    attributes = child_nodes(first_child_of_type(block, 'body'), 'attribute')
-    attribute = next((a for a in attributes if node_text(a.children[0]) == name), None)
-    expression = first_child_of_type(attribute, 'expression')
-    literal = first_child_of_type(expression, 'literal_value')
-    string = first_child_of_type(literal, 'string_lit')
-    return read_label(string) if string else None
+    return read_string(read_value(read_attributes(block).get(name)))
 
 
 def read_provider_versions(root: Node) -> LockedVersions:
-    blocks = child_nodes(first_child_of_type(root, 'body'), 'block')
+    blocks = get_children(first_child_of_type(root, 'body'), 'block')
     providers = [block for block in blocks if node_text(block.children[0]) == 'provider']
     labelled = {first_child_of_type(block, 'string_lit'): block for block in providers}
     versions = {

@@ -20,6 +20,16 @@ class Block:
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
+class RequiredProvider:
+    local_name: str
+    source: str | None
+    version: str | None
+    file: Path
+    start_line: int
+    end_line: int
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
 class ModuleIndex:
     directory: Path
     blocks: tuple[Block, ...]

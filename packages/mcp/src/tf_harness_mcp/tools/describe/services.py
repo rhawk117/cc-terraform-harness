@@ -11,7 +11,13 @@ from tf_harness_mcp.policies.budget import create_output_budget
 from tf_harness_mcp.structure.services import (
     create_block_indexer,
     first_child_of_type,
+    get_children,
     node_text,
+    read_attributes,
+    read_flag,
+    read_required_providers,
+    read_string,
+    read_value,
 )
 from tf_harness_mcp.tools.describe.domain import (
     AssignmentEntry,
@@ -34,15 +40,12 @@ if TYPE_CHECKING:
 
     from tf_harness_mcp.policies.budget import OutputBudget
     from tf_harness_mcp.settings import Settings
-    from tf_harness_mcp.structure.domain import Block
+    from tf_harness_mcp.structure.domain import Block, RequiredProvider
     from tf_harness_mcp.structure.errors import FileProblem
     from tf_harness_mcp.structure.services import BlockIndexer, FileIndex
     from tf_harness_mcp.tools.describe.domain import (
         TargetKind,
     )
-
-
-OBJECT_ELEMENT_EXPRESSIONS = 2
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -51,51 +54,11 @@ class NamedBlock:
     block: Block
 
 
-def get_children(node: Node | None, type_name: str) -> list[Node]:
-    return [child for child in (node.children if node else ()) if child.type == type_name]
-
-
 def read_named_blocks(index: FileIndex) -> list[NamedBlock]:
     body = first_child_of_type(index.root, 'body')
     nodes = get_children(body, 'block')
     pairs = zip(nodes, index.blocks, strict=True)
     return [NamedBlock(node=node, block=block) for node, block in pairs]
-
-
-def read_attributes(container: Node | None) -> dict[str, Node]:
-    body = first_child_of_type(container, 'body')
-    return {node_text(node.children[0]): node for node in get_children(body, 'attribute')}
-
-
-def read_value(attribute: Node | None) -> Node | None:
-    return first_child_of_type(attribute, 'expression')
-
-
-def read_string(expression: Node | None) -> str | None:
-    literal = first_child_of_type(expression, 'literal_value')
-    quoted = first_child_of_type(literal, 'string_lit')
-    template = first_child_of_type(expression, 'template_expr')
-    heredoc = first_child_of_type(template, 'heredoc_template')
-    text = quoted or heredoc
-    if text is None:
-        return None
-
-    return ''.join(map(node_text, get_children(text, 'template_literal'))).strip()
-
-
-def read_flag(expression: Node | None) -> bool:
-    literal = first_child_of_type(expression, 'literal_value')
-    flag = first_child_of_type(literal, 'bool_lit')
-    return flag is not None and node_text(flag) == 'true'
-
-
-def read_object_fields(expression: Node | None) -> dict[str, Node]:
-    collection = first_child_of_type(expression, 'collection_value')
-    elements = get_children(first_child_of_type(collection, 'object'), 'object_elem')
-    pairs = [get_children(element, 'expression') for element in elements]
-    return {
-        node_text(pair[0]): pair[1] for pair in pairs if len(pair) == OBJECT_ELEMENT_EXPRESSIONS
-    }
 
 
 def get_label(block: Block, position: int) -> str:
@@ -151,26 +114,19 @@ def make_module_call(item: NamedBlock) -> ModuleCallEntry:
     )
 
 
-def make_provider(name: str, attribute: Node, file: Path) -> ProviderEntry:
-    expression = read_value(attribute)
-    fields = read_object_fields(expression)
-    legacy_version = None if fields else read_string(expression)
+def make_provider(provider: RequiredProvider) -> ProviderEntry:
     return ProviderEntry(
-        local_name=name,
-        source=read_string(fields.get('source')),
-        version=read_string(fields.get('version')) or legacy_version,
-        location=locate_node(attribute, file),
+        local_name=provider.local_name,
+        source=provider.source,
+        version=provider.version,
+        location=Location(
+            file=str(provider.file), start_line=provider.start_line, end_line=provider.end_line
+        ),
     )
 
 
 def select_required_providers(item: NamedBlock) -> list[ProviderEntry]:
-    nested = get_children(first_child_of_type(item.node, 'body'), 'block')
-    declarations = [node for node in nested if node_text(node.children[0]) == 'required_providers']
-    return [
-        make_provider(name, attribute, item.block.file)
-        for declaration in declarations
-        for name, attribute in read_attributes(declaration).items()
-    ]
+    return list(map(make_provider, read_required_providers(item.node, item.block.file)))
 
 
 def select_kind(items: list[NamedBlock], kind: str) -> list[NamedBlock]:

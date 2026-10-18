@@ -9,7 +9,13 @@ import tree_sitter_hcl
 from tree_sitter import Language, Parser
 
 from tf_harness_mcp.policies.containment import PathContainmentPolicy
-from tf_harness_mcp.structure.domain import Block, ModuleGraph, ModuleIndex, ModuleNode
+from tf_harness_mcp.structure.domain import (
+    Block,
+    ModuleGraph,
+    ModuleIndex,
+    ModuleNode,
+    RequiredProvider,
+)
 from tf_harness_mcp.structure.errors import HclSyntaxError, UnreadableFileError
 from tf_harness_mcp.structure.policy import LocalSourcePolicy
 
@@ -19,6 +25,7 @@ if TYPE_CHECKING:
     from tf_harness_mcp.structure.errors import FileProblem
 
 LABEL_TYPES = frozenset({'string_lit', 'identifier'})
+OBJECT_ELEMENT_EXPRESSIONS = 2
 
 
 def node_text(node: Node) -> str:
@@ -30,6 +37,70 @@ def first_child_of_type(node: Node | None, type_name: str) -> Node | None:
         return None
 
     return next((child for child in node.children if child.type == type_name), None)
+
+
+def get_children(node: Node | None, type_name: str) -> list[Node]:
+    return [child for child in (node.children if node else ()) if child.type == type_name]
+
+
+def read_attributes(container: Node | None) -> dict[str, Node]:
+    body = first_child_of_type(container, 'body')
+    return {node_text(node.children[0]): node for node in get_children(body, 'attribute')}
+
+
+def read_value(attribute: Node | None) -> Node | None:
+    return first_child_of_type(attribute, 'expression')
+
+
+def read_string(expression: Node | None) -> str | None:
+    literal = first_child_of_type(expression, 'literal_value')
+    quoted = first_child_of_type(literal, 'string_lit')
+    template = first_child_of_type(expression, 'template_expr')
+    heredoc = first_child_of_type(template, 'heredoc_template')
+    text = quoted or heredoc
+    if text is None:
+        return None
+
+    return ''.join(map(node_text, get_children(text, 'template_literal'))).strip()
+
+
+def read_flag(expression: Node | None) -> bool:
+    literal = first_child_of_type(expression, 'literal_value')
+    flag = first_child_of_type(literal, 'bool_lit')
+    return flag is not None and node_text(flag) == 'true'
+
+
+def read_object_fields(expression: Node | None) -> dict[str, Node]:
+    collection = first_child_of_type(expression, 'collection_value')
+    elements = get_children(first_child_of_type(collection, 'object'), 'object_elem')
+    pairs = [get_children(element, 'expression') for element in elements]
+    return {
+        node_text(pair[0]): pair[1] for pair in pairs if len(pair) == OBJECT_ELEMENT_EXPRESSIONS
+    }
+
+
+def read_required_provider(name: str, attribute: Node, file: Path) -> RequiredProvider:
+    expression = read_value(attribute)
+    fields = read_object_fields(expression)
+    legacy_version = None if fields else read_string(expression)
+    return RequiredProvider(
+        local_name=name,
+        source=read_string(fields.get('source')),
+        version=read_string(fields.get('version')) or legacy_version,
+        file=file,
+        start_line=attribute.start_point.row + 1,
+        end_line=attribute.end_point.row + 1,
+    )
+
+
+def read_required_providers(terraform: Node, file: Path) -> tuple[RequiredProvider, ...]:
+    nested = get_children(first_child_of_type(terraform, 'body'), 'block')
+    declarations = [node for node in nested if node_text(node.children[0]) == 'required_providers']
+    return tuple(
+        read_required_provider(name, attribute, file)
+        for declaration in declarations
+        for name, attribute in read_attributes(declaration).items()
+    )
 
 
 def read_label(node: Node) -> str:
