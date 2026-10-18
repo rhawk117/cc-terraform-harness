@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from _pytest.mark import ParameterSet
     from tf_harness_mcp.runner.domain import CommandRunner
 
+READ_STDIN = 'import sys; print(repr(sys.stdin.read()))'
 PRINT_ENV = 'import os, sys; print(os.environ.get(sys.argv[1], "unset"))'
 
 
@@ -96,6 +97,11 @@ class TestAnyioCommandRunner:
         result = await runner.run(python_command(script), self.timeout)
 
         assert (result.returncode, result.stderr) == (3, 'bad')
+
+    async def test_child_stdin_is_closed(self, runner: CommandRunner) -> None:
+        result = await runner.run(python_command(READ_STDIN), self.timeout)
+
+        assert result.stdout.strip() == "''"
 
     async def test_refuses_command_outside_the_set(self, runner: CommandRunner) -> None:
         with pytest.raises(CommandNotAllowedError):

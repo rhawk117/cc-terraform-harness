@@ -2,6 +2,7 @@
 
 import os
 import shlex
+import subprocess
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -33,7 +34,10 @@ class AnyioCommandRunner:
         try:
             with anyio.fail_after(timeout_seconds):
                 completed = await anyio.run_process(
-                    list(command.argv), env=environment, check=False
+                    list(command.argv),
+                    env=environment,
+                    stdin=subprocess.DEVNULL,
+                    check=False,
                 )
         except TimeoutError as err:
             raise CommandTimeoutError(
