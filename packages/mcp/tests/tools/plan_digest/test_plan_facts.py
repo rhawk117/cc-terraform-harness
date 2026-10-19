@@ -59,6 +59,18 @@ def risky_plan(project_root: Path) -> Path:
 
 
 @pytest.fixture
+def quiet_plan_path(project_root: Path) -> Path:
+    path = project_root.joinpath('quiet.json')
+    change = {
+        'address': 'null_resource.a',
+        'type': 'null_resource',
+        'change': {'actions': ['create']},
+    }
+    path.write_text(json.dumps({'planned_values': {}, 'resource_changes': [change]}))
+    return path
+
+
+@pytest.fixture
 async def risky_digest(client: Client, risky_plan: Path) -> Digest:
     result = await client.call_tool('plan_digest', {'path': str(risky_plan)})
     assert not result.is_error
@@ -125,17 +137,9 @@ class TestPlanFacts:
         assert flag in risky_digest['plan_flags']
 
     async def test_flags_nothing_on_a_quiet_resource(
-        self, client: Client, project_root: Path
+        self, client: Client, quiet_plan_path: Path
     ) -> None:
-        path = project_root.joinpath('quiet.json')
-        change = {
-            'address': 'null_resource.a',
-            'type': 'null_resource',
-            'change': {'actions': ['create']},
-        }
-        path.write_text(json.dumps({'planned_values': {}, 'resource_changes': [change]}))
-
-        result = await client.call_tool('plan_digest', {'path': str(path)})
+        result = await client.call_tool('plan_digest', {'path': str(quiet_plan_path)})
 
         content = result.structured_content
         assert content is not None
@@ -162,14 +166,17 @@ class TestPlanFactsWithinBudget:
     def settings(self, project_root: Path) -> Settings:
         return Settings(project_root=project_root, output_budget_bytes=1500)
 
-    async def test_cuts_the_drifted_list_and_counts_the_omitted(
-        self, client: Client, project_root: Path
-    ) -> None:
+    @pytest.fixture
+    def drift_plan_path(self, project_root: Path) -> Path:
         drift = [{'address': f'null_resource.drifted{index}'} for index in range(200)]
         path = project_root.joinpath('drift.json')
         path.write_text(json.dumps({'planned_values': {}, 'resource_drift': drift}))
+        return path
 
-        result = await client.call_tool('plan_digest', {'path': str(path)})
+    async def test_cuts_the_drifted_list_and_counts_the_omitted(
+        self, client: Client, drift_plan_path: Path
+    ) -> None:
+        result = await client.call_tool('plan_digest', {'path': str(drift_plan_path)})
 
         content = result.structured_content
         assert content is not None
