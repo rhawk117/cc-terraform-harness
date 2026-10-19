@@ -83,6 +83,11 @@ class TestPlanFacts:
     ) -> None:
         assert flag in find_resource(risky_digest, address)['flags']
 
+    async def test_does_not_flag_an_open_cidr_under_egress(self, risky_digest: Digest) -> None:
+        flags = find_resource(risky_digest, 'aws_security_group.egress_only')['flags']
+
+        assert 'open-cidr' not in flags
+
     @pytest.mark.parametrize('flag', ['mass-destroy', 'drift', 'unsupported-action'])
     async def test_plan_flags_name_the_plan_wide_risk(
         self, risky_digest: Digest, flag: str

@@ -58,6 +58,17 @@
       }
     },
     {
+      "address": "terraform_data.dropped",
+      "type": "terraform_data",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {},
+        "after": null
+      }
+    },
+    {
       "address": "aws_security_group.open",
       "type": "aws_security_group",
       "change": {
@@ -75,6 +86,33 @@
         },
         "after": {
           "ingress": [
+            {
+              "cidr_blocks": [
+                "0.0.0.0/0"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "address": "aws_security_group.egress_only",
+      "type": "aws_security_group",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "egress": [
+            {
+              "cidr_blocks": [
+                "10.0.0.0/8"
+              ]
+            }
+          ]
+        },
+        "after": {
+          "egress": [
             {
               "cidr_blocks": [
                 "0.0.0.0/0"

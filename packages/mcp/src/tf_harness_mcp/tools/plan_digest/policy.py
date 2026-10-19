@@ -65,6 +65,7 @@ MASS_DESTROY_ABSOLUTE = 10
 MASS_DESTROY_RATIO = 0.3
 MASS_DESTROY_MINIMUM = 3
 LEAF_INDEX = re.compile(r'\[\d+\]$')
+PATH_SEGMENT_SPLIT = re.compile(r'[.\[]')
 
 
 def classify(actions: list[str]) -> ActionKind:
@@ -107,6 +108,10 @@ def leaf_key(path: str) -> str:
     return LEAF_INDEX.sub('', path).rsplit('.', 1)[-1]
 
 
+def is_egress_path(path: str) -> bool:
+    return any(segment.startswith('egress') for segment in PATH_SEGMENT_SPLIT.split(path))
+
+
 def is_public_value(key: str, value: object) -> bool:
     if key in PUBLIC_FLAG_KEYS:
         return value is True
@@ -117,7 +122,7 @@ def is_public_value(key: str, value: object) -> bool:
 def exposure_flags(after: dict[str, Any] | None) -> set[Flag]:
     found: set[Flag] = set()
     for path, value in walk_values(after or {}):
-        if isinstance(value, str) and value in OPEN_CIDRS:
+        if isinstance(value, str) and value in OPEN_CIDRS and not is_egress_path(path):
             found.add(Flag.OPEN_CIDR)
 
         if is_public_value(leaf_key(path), value):
