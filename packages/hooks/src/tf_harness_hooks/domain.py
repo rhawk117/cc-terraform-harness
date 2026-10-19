@@ -9,11 +9,11 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from tf_harness_mcp.runner.domain import CommandRunner
+    from tf_harness_mcp.runner.policy import ReadOnlyOptions
 
 type Subcommand = Literal['fmt', 'read', 'session-start']
 
 SUBCOMMANDS: Final[tuple[Subcommand, ...]] = ('fmt', 'read', 'session-start')
-FILE_SUBCOMMANDS: Final[frozenset[Subcommand]] = frozenset({'fmt', 'read'})
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -41,12 +41,11 @@ class HookOutput:
 type Handler = Callable[[HookRequest], Awaitable[HookOutput | None]]
 
 
-async def ignore_event(_request: HookRequest) -> HookOutput | None:
-    return None
-
-
-def default_handlers() -> dict[Subcommand, Handler]:
-    return dict.fromkeys(SUBCOMMANDS, ignore_event)
+@dataclass(slots=True, kw_only=True, frozen=True)
+class HookSpec:
+    handler: Handler
+    runner_options: ReadOnlyOptions
+    needs_file: bool
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
@@ -58,8 +57,7 @@ class HookIo:
 
 @dataclass(slots=True, kw_only=True, frozen=True)
 class HookSession:
-    subcommand: Subcommand
+    spec: HookSpec
     environ: Mapping[str, str]
     io: HookIo
     runner: CommandRunner
-    handlers: Mapping[Subcommand, Handler]

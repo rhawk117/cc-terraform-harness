@@ -2,8 +2,8 @@ import shutil
 from typing import TYPE_CHECKING
 
 import pytest
+from tf_harness_hooks.cli import create_hook_specs
 from tf_harness_hooks.domain import HookRequest
-from tf_harness_hooks.policy import runner_options
 from tf_harness_hooks.session_start import report_tool_versions
 from tf_harness_mcp.runner.process import create_command_runner
 
@@ -17,7 +17,7 @@ async def report_lines(project_root: Path) -> list[str]:
     request = HookRequest(
         event_name='SessionStart',
         project_root=project_root,
-        runner=create_command_runner(options=runner_options('session-start')),
+        runner=create_command_runner(options=create_hook_specs()['session-start'].runner_options),
     )
     output = await report_tool_versions(request)
     assert output is not None

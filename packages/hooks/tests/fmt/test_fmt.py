@@ -1,9 +1,10 @@
 from typing import TYPE_CHECKING
 
 import pytest
+from tf_harness_hooks.cli import create_hook_specs
 from tf_harness_hooks.domain import HookRequest
 from tf_harness_hooks.fmt import FMT_TIMEOUT_SECONDS, format_file
-from tf_harness_hooks.policy import FMT_WRITE_PREFIX, runner_options
+from tf_harness_hooks.policy import FMT_WRITE_PREFIX
 from tf_harness_mcp.runner.domain import Command, CommandResult
 from tf_harness_mcp.runner.errors import CommandTimeoutError
 from tf_harness_mcp.runner.policy import ReadOnlyCommandPolicy
@@ -21,7 +22,7 @@ pytestmark = pytest.mark.unit
 
 @pytest.fixture
 def fmt_runner() -> RecordingCommandRunner:
-    return RecordingCommandRunner(options=runner_options('fmt'))
+    return RecordingCommandRunner(options=create_hook_specs()['fmt'].runner_options)
 
 
 class TestFormatFile:
@@ -130,23 +131,24 @@ class TestFmtPolicy:
         ).get_command_problem()
 
     def test_fmt_policy_allows_the_write_argv(self) -> None:
-        assert self.problem_for(runner_options('fmt'), self.fmt_argv) is None
+        assert self.problem_for(create_hook_specs()['fmt'].runner_options, self.fmt_argv) is None
 
     @pytest.mark.parametrize(
         'argv',
         [
             ('terraform', 'validate'),
             ('terraform', 'fmt', '-check', '/project/main.tf'),
+            ('terraform', 'fmt', '-list=true', '-no-color', '-recursive', '/p/main.tf'),
             ('git', 'diff'),
         ],
     )
     def test_fmt_policy_allows_nothing_else(self, argv: tuple[str, ...]) -> None:
-        assert self.problem_for(runner_options('fmt'), argv) is not None
+        assert self.problem_for(create_hook_specs()['fmt'].runner_options, argv) is not None
 
     @pytest.mark.parametrize('subcommand', ['read', 'session-start'])
     def test_default_read_only_commands_still_refuse_the_write_argv(
         self, subcommand: Subcommand
     ) -> None:
-        options = runner_options(subcommand)
+        options = create_hook_specs()[subcommand].runner_options
 
         assert self.problem_for(options, self.fmt_argv) is not None

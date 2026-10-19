@@ -9,18 +9,18 @@ from typing import TYPE_CHECKING
 import anyio
 from pydantic import ValidationError
 from tf_harness_mcp.policies.containment import resolve_project_path
+from tf_harness_mcp.runner.policy import ReadOnlyOptions
 from tf_harness_mcp.runner.process import create_command_runner
 
 from tf_harness_hooks.domain import (
-    FILE_SUBCOMMANDS,
     SUBCOMMANDS,
     HookIo,
     HookRequest,
     HookSession,
-    default_handlers,
+    HookSpec,
 )
 from tf_harness_hooks.fmt import format_file
-from tf_harness_hooks.policy import HookFilePolicy, runner_options
+from tf_harness_hooks.policy import FMT_OPTIONS, SESSION_START_OPTIONS, HookFilePolicy
 from tf_harness_hooks.read import report_file_findings
 from tf_harness_hooks.schemas import HookEvent
 from tf_harness_hooks.session_start import report_tool_versions
@@ -28,19 +28,24 @@ from tf_harness_hooks.session_start import report_tool_versions
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-    from tf_harness_hooks.domain import Handler, Subcommand
+    from tf_harness_hooks.domain import Subcommand
 
 PROJECT_DIR_VARIABLE = 'CLAUDE_PROJECT_DIR'
 INVALID_EVENT = 1
 USAGE_ERROR = 2
 
 
-def build_handlers() -> dict[Subcommand, Handler]:
+def create_hook_specs() -> dict[Subcommand, HookSpec]:
     return {
-        **default_handlers(),
-        'fmt': format_file,
-        'read': report_file_findings,
-        'session-start': report_tool_versions,
+        'fmt': HookSpec(handler=format_file, runner_options=FMT_OPTIONS, needs_file=True),
+        'read': HookSpec(
+            handler=report_file_findings, runner_options=ReadOnlyOptions(), needs_file=True
+        ),
+        'session-start': HookSpec(
+            handler=report_tool_versions,
+            runner_options=SESSION_START_OPTIONS,
+            needs_file=False,
+        ),
     }
 
 
@@ -53,7 +58,7 @@ def find_subcommand(argv: Sequence[str]) -> Subcommand | None:
 
 def gate_file(session: HookSession, event: HookEvent, project_root: Path) -> int | None:
     """Return the exit code that ends the hook before any handler runs, or None to go on."""
-    if session.subcommand not in FILE_SUBCOMMANDS:
+    if not session.spec.needs_file:
         return None
 
     if event.file_path is None:
@@ -92,7 +97,7 @@ def run_hook(session: HookSession) -> int:
         if event.file_path is None
         else resolve_project_path(project_root, event.file_path),
     )
-    output = anyio.run(session.handlers[session.subcommand], request)
+    output = anyio.run(session.spec.handler, request)
     if output is not None:
         session.io.stdout.write(json.dumps(output.to_wire()))
 
@@ -107,11 +112,11 @@ def main(argv: Sequence[str] | None = None, environ: Mapping[str, str] | None = 
         sys.stderr.write(f'usage: tf-harness-hooks {{{"|".join(SUBCOMMANDS)}}}\n')
         return USAGE_ERROR
 
+    spec = create_hook_specs()[subcommand]
     session = HookSession(
-        subcommand=subcommand,
+        spec=spec,
         environ=env,
         io=HookIo(stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr),
-        runner=create_command_runner(env, runner_options(subcommand)),
-        handlers=build_handlers(),
+        runner=create_command_runner(env, spec.runner_options),
     )
     return run_hook(session)

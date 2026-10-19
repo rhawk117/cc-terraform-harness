@@ -10,9 +10,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from tf_harness_mcp.policies.errors import PathOutsideRootError
-
-    from tf_harness_hooks.domain import Subcommand
-
 TERRAFORM_SUFFIXES: Final[frozenset[str]] = frozenset({'.tf', '.tfvars'})
 FMT_WRITE_PREFIX: Final[tuple[str, ...]] = ('terraform', 'fmt', '-list=true', '-no-color')
 TERRAFORM_VERSION_ARGV: Final[tuple[str, ...]] = ('terraform', 'version', '-json')
@@ -25,16 +22,19 @@ SESSION_START_PROBES: Final[tuple[tuple[str, ...], ...]] = (
 )
 
 
-def runner_options(subcommand: Subcommand) -> ReadOnlyOptions:
-    if subcommand == 'fmt':
-        return ReadOnlyOptions(commands=(AllowedCommand(prefix=FMT_WRITE_PREFIX),))
-
-    if subcommand == 'session-start':
-        return ReadOnlyOptions(
-            commands=tuple(AllowedCommand(prefix=argv) for argv in SESSION_START_PROBES)
-        )
-
-    return ReadOnlyOptions()
+FMT_OPTIONS: Final[ReadOnlyOptions] = ReadOnlyOptions(
+    commands=(
+        AllowedCommand(
+            prefix=FMT_WRITE_PREFIX, forbidden_flags=('-recursive', '-write=false', '-check')
+        ),
+    )
+)
+SESSION_START_OPTIONS: Final[ReadOnlyOptions] = ReadOnlyOptions(
+    commands=tuple(
+        AllowedCommand(prefix=argv, forbidden_flags=('--init', '--fix'))
+        for argv in SESSION_START_PROBES
+    )
+)
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)

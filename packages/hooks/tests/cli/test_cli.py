@@ -7,10 +7,16 @@ from tf_harness_hooks.cli import main
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from tf_harness_hooks.domain import HookOutput, HookRequest
+
     from tests.conftest import HookHarness
 
 
 pytestmark = pytest.mark.unit
+
+
+async def ignore_event(_request: HookRequest) -> HookOutput | None:
+    return None
 
 
 class TestHookOutput:
@@ -61,7 +67,7 @@ class TestHookOutput:
             'fmt',
             hook_harness.event(project_root / 'main.tf'),
             project_dir=str(project_root),
-            probe=False,
+            handler=ignore_event,
         )
 
         assert (run.exit_code, run.stdout) == (0, '')

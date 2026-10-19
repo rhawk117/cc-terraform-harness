@@ -1,11 +1,11 @@
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from io import StringIO
 from typing import TYPE_CHECKING
 
 import pytest
-from tf_harness_hooks.cli import PROJECT_DIR_VARIABLE, run_hook
-from tf_harness_hooks.domain import HookIo, HookOutput, HookSession, default_handlers
+from tf_harness_hooks.cli import PROJECT_DIR_VARIABLE, create_hook_specs, run_hook
+from tf_harness_hooks.domain import HookIo, HookOutput, HookSession
 from tf_harness_mcp.runner.domain import Command, CommandResult
 
 if TYPE_CHECKING:
@@ -52,20 +52,17 @@ class HookHarness:
         stdin: str,
         *,
         project_dir: str | None,
-        probe: bool = True,
+        handler: Handler | None = None,
     ) -> HookRun:
         environ = {} if project_dir is None else {PROJECT_DIR_VARIABLE: project_dir}
-        handlers: dict[Subcommand, Handler] = default_handlers()
-        if probe:
-            handlers[subcommand] = self.probe_runner
+        spec = replace(create_hook_specs()[subcommand], handler=handler or self.probe_runner)
         stdout, stderr = StringIO(), StringIO()
         io = HookIo(stdin=StringIO(stdin), stdout=stdout, stderr=stderr)
         session = HookSession(
-            subcommand=subcommand,
+            spec=spec,
             environ=environ,
             io=io,
             runner=self.runner,
-            handlers=handlers,
         )
         exit_code = run_hook(session)
         return HookRun(exit_code=exit_code, stdout=stdout.getvalue(), stderr=stderr.getvalue())

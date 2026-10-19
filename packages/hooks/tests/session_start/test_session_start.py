@@ -2,13 +2,13 @@ import json
 from typing import TYPE_CHECKING
 
 import pytest
+from tf_harness_hooks.cli import create_hook_specs
 from tf_harness_hooks.domain import HookRequest
 from tf_harness_hooks.policy import (
     SESSION_START_PROBES,
     TERRAFORM_LS_VERSION_ARGV,
     TERRAFORM_VERSION_ARGV,
     TFLINT_VERSION_ARGV,
-    runner_options,
 )
 from tf_harness_hooks.session_start import PROBE_TIMEOUT_SECONDS, report_tool_versions
 from tf_harness_mcp.runner.domain import Command, CommandResult
@@ -35,7 +35,7 @@ def succeed(stdout: str) -> CommandResult:
 
 @pytest.fixture
 def probe_runner() -> RecordingCommandRunner:
-    runner = RecordingCommandRunner(options=runner_options('session-start'))
+    runner = RecordingCommandRunner(options=create_hook_specs()['session-start'].runner_options)
     runner.script(TERRAFORM_VERSION_ARGV, succeed(TERRAFORM_JSON))
     runner.script(TFLINT_VERSION_ARGV, succeed(TFLINT_OUTPUT))
     runner.script(TERRAFORM_LS_VERSION_ARGV, succeed(TERRAFORM_LS_OUTPUT))
@@ -171,7 +171,7 @@ class TestProbeFailures:
 class TestSessionStartPolicy:
     def problem_for(self, argv: tuple[str, ...]) -> CommandNotAllowedError | None:
         return ReadOnlyCommandPolicy(
-            command=Command(argv=argv), options=runner_options('session-start')
+            command=Command(argv=argv), options=create_hook_specs()['session-start'].runner_options
         ).get_command_problem()
 
     @pytest.mark.parametrize('argv', SESSION_START_PROBES)
@@ -184,6 +184,7 @@ class TestSessionStartPolicy:
             ('terraform', 'validate'),
             ('terraform', 'version'),
             ('tflint', '--init'),
+            ('tflint', '--version', '--init'),
             ('tflint',),
             ('terraform-ls', 'serve'),
             ('git', 'diff'),
@@ -193,7 +194,7 @@ class TestSessionStartPolicy:
         assert self.problem_for(argv) is not None
 
     def test_read_keeps_the_default_policy(self) -> None:
-        options = runner_options('read')
+        options = create_hook_specs()['read'].runner_options
 
         problem = ReadOnlyCommandPolicy(
             command=Command(argv=('terraform', 'validate')), options=options

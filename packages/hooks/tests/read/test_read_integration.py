@@ -2,8 +2,8 @@ import shutil
 from typing import TYPE_CHECKING
 
 import pytest
+from tf_harness_hooks.cli import create_hook_specs
 from tf_harness_hooks.domain import HookRequest
-from tf_harness_hooks.policy import runner_options
 from tf_harness_hooks.read import report_file_findings
 from tf_harness_mcp.runner.process import create_command_runner
 
@@ -28,7 +28,7 @@ class TestRealReadChecks:
         request = HookRequest(
             event_name='PostToolUse',
             project_root=project_root,
-            runner=create_command_runner(options=runner_options('read')),
+            runner=create_command_runner(options=create_hook_specs()['read'].runner_options),
             file_path=project_root / name,
         )
         output = await report_file_findings(request)
