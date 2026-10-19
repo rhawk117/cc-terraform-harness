@@ -15,11 +15,24 @@ if TYPE_CHECKING:
 
 TERRAFORM_SUFFIXES: Final[frozenset[str]] = frozenset({'.tf', '.tfvars'})
 FMT_WRITE_PREFIX: Final[tuple[str, ...]] = ('terraform', 'fmt', '-list=true', '-no-color')
+TERRAFORM_VERSION_ARGV: Final[tuple[str, ...]] = ('terraform', 'version', '-json')
+TFLINT_VERSION_ARGV: Final[tuple[str, ...]] = ('tflint', '--version')
+TERRAFORM_LS_VERSION_ARGV: Final[tuple[str, ...]] = ('terraform-ls', 'version')
+SESSION_START_PROBES: Final[tuple[tuple[str, ...], ...]] = (
+    TERRAFORM_VERSION_ARGV,
+    TFLINT_VERSION_ARGV,
+    TERRAFORM_LS_VERSION_ARGV,
+)
 
 
 def runner_options(subcommand: Subcommand) -> ReadOnlyOptions:
     if subcommand == 'fmt':
         return ReadOnlyOptions(commands=(AllowedCommand(prefix=FMT_WRITE_PREFIX),))
+
+    if subcommand == 'session-start':
+        return ReadOnlyOptions(
+            commands=tuple(AllowedCommand(prefix=argv) for argv in SESSION_START_PROBES)
+        )
 
     return ReadOnlyOptions()
 
