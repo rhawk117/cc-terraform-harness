@@ -40,6 +40,7 @@ def get_directory_problem(directory: Path) -> DirectoryExpectedError | None:
 
 def create_failure_report(name: str, result: CommandResult) -> CheckReport:
     finding = Finding(
+        scope='tool',
         severity='error',
         summary=f'{name} exited with {result.returncode} and printed no usable output',
         detail=result.stderr.strip(),
@@ -62,7 +63,8 @@ class FormatCheck:
 
         names = filter(None, map(str.strip, result.stdout.splitlines()))
         findings = [
-            Finding(severity='error', summary='file is not formatted', file=name) for name in names
+            Finding(scope='file', severity='error', summary='file is not formatted', file=name)
+            for name in names
         ]
         return CheckReport(status='failed', findings=findings)
 
@@ -80,6 +82,7 @@ class ValidateCheck:
 
         findings = [
             Finding(
+                scope='module' if diagnostic.file is None else 'file',
                 severity=diagnostic.severity,
                 summary=diagnostic.summary,
                 detail=diagnostic.detail,
@@ -95,6 +98,7 @@ class ValidateCheck:
 def read_tflint_findings(output: TflintOutput) -> list[Finding]:
     issues = [
         Finding(
+            scope='file',
             severity=issue.rule.severity,
             summary=f'{issue.rule.name}: {issue.message}',
             file=issue.file,
@@ -102,7 +106,10 @@ def read_tflint_findings(output: TflintOutput) -> list[Finding]:
         )
         for issue in output.issues
     ]
-    errors = [Finding(severity=error.severity, summary=error.message) for error in output.errors]
+    errors = [
+        Finding(scope='tool', severity=error.severity, summary=error.message)
+        for error in output.errors
+    ]
     return [*issues, *errors]
 
 

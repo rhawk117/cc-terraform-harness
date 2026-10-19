@@ -29,7 +29,7 @@ Reports are most useful when they involve one of these areas.
 
 | Area | Examples |
 | --- | --- |
-| Hooks and executables | Unsafe subprocess execution, command injection, unexpected side effects, access outside intended paths |
+| Hooks and executables | Unsafe subprocess execution, command injection, unexpected side effects, access outside intended paths. The read hook runs `terraform validate` and `tflint` (including any plugins that `.tflint.hcl` configures) in the read file's directory on every `.tf` or `.tfvars` Read. |
 | Skills, commands, agents and workflows | Instructions that lead to unsafe tool use, disclose sensitive data or bypass expected user approval |
 | MCP and LSP integrations | Running untrusted servers, excessive privileges, insecure communication, mishandled credentials |
 | Plugin manifests and configuration | Unsafe defaults, path traversal, unintended component loading, insecure handling of environment variables |

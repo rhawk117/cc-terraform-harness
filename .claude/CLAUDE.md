@@ -21,7 +21,9 @@ Python 3.14 (`.python-version`), uv, ruff, ty, pytest, mdformat and pre-commit. 
 ## Layout
 
 - The plugin sits at the repository root, and `.claude-plugin/plugin.json` contains its manifest. The root `pyproject.toml` is both the plugin project and the uv workspace root, with members under `packages/`.
-- `packages/mcp` holds the terraform MCP server (`tf_harness_mcp`), which `.mcp.json` launches and whose tests live in `packages/mcp/tests`. There is no `packages/hooks` package yet: the hook code that runs today is `.claude/hooks/pyhooks.py`, a PEP 723 script that `.claude/settings.json` wires to Write, Edit and Read. ty does not check it, because `ty.toml` includes only `packages` and `tests`.
+- `packages/mcp` holds the terraform MCP server (`tf_harness_mcp`), which `.mcp.json` launches and whose tests live in `packages/mcp/tests`.
+- `packages/hooks` holds the plugin's hooks (`tf_harness_hooks`, run through the `tf-harness-hooks` CLI with `fmt`, `read` and `session-start`), which `hooks/hooks.json` registers and whose tests live in `packages/hooks/tests`.
+- `.claude/hooks/pyhooks.py` is the repository's own development hook, a PEP 723 script that `.claude/settings.json` wires to Write, Edit and Read. ty does not check it, because `ty.toml` includes only `packages` and `tests`.
 - Read `.claude/rules/python.md` before writing Python and `.claude/rules/testing.md` before writing tests. Both load on their own when you touch a matching file.
 
 ## Conventions
@@ -39,7 +41,7 @@ Python 3.14 (`.python-version`), uv, ruff, ty, pytest, mdformat and pre-commit. 
 
 `.github/workflows/ci.yml` defines CI's quality job, which runs the pre-commit hooks on all files and then the tests. Match it with `make pre-commit`, then `make test`. `make check` is the faster local loop, but it skips the hygiene and uv-lock hooks, so it can pass where CI fails.
 
-`make test` also runs each package's tests, because `testpaths` in `pytest.toml` collects `packages/*/tests`. For a change confined to `packages/mcp`, `uv run pytest -q packages/mcp/tests` is the faster loop.
+`make test` also runs each package's tests, because `testpaths` in `pytest.toml` collects `packages/*/tests`. For a change confined to `packages/mcp`, `uv run pytest -q packages/mcp/tests` is the faster loop, and `uv run pytest -q packages/hooks/tests` is the one for `packages/hooks`.
 
 ## Claude Code
 

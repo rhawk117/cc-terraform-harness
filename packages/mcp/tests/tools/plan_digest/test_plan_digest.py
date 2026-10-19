@@ -43,13 +43,30 @@ class TestPlanDigest:
         self, digest: dict[str, object]
     ) -> None:
         assert digest['resource_changes'] == [
-            {'address': 'terraform_data.removed[0]', 'actions': ['delete'], 'replacement': False},
+            {
+                'address': 'terraform_data.removed[0]',
+                'actions': ['delete'],
+                'replacement': False,
+                'forced_by': [],
+                'sensitive_attributes': [],
+                'flags': [],
+            },
             {
                 'address': 'terraform_data.replaced',
                 'actions': ['delete', 'create'],
                 'replacement': True,
+                'forced_by': ['triggers_replace'],
+                'sensitive_attributes': [],
+                'flags': [],
             },
-            {'address': 'terraform_data.updated', 'actions': ['update'], 'replacement': False},
+            {
+                'address': 'terraform_data.updated',
+                'actions': ['update'],
+                'replacement': False,
+                'forced_by': [],
+                'sensitive_attributes': [],
+                'flags': [],
+            },
         ]
 
     async def test_lists_output_changes_by_name(self, digest: dict[str, object]) -> None:

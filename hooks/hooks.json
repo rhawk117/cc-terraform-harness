@@ -1,3 +1,38 @@
 {
-  "hooks": {}
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/tf-harness-hooks\" fmt",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/tf-harness-hooks\" read",
+            "timeout": 90
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/tf-harness-hooks\" session-start",
+            "timeout": 45
+          }
+        ]
+      }
+    ]
+  }
 }
