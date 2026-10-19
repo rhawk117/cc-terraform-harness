@@ -29,8 +29,6 @@ TERRAFORM_DIRECTORY: Final = '.terraform'
 
 @dataclass(slots=True, kw_only=True, frozen=True)
 class Section:
-    """A header line and the finding lines under it."""
-
     header: str
     lines: list[str] = field(default_factory=list)
 
@@ -45,7 +43,7 @@ def format_finding(finding: Finding) -> str:
 
 
 def targets_file(finding: Finding, module: Path, file_path: Path) -> bool:
-    return finding.file is not None and module / finding.file == file_path
+    return finding.file is not None and module.joinpath(finding.file) == file_path
 
 
 def lacks_plugins(report: CheckReport) -> bool:
@@ -67,7 +65,7 @@ def timeout_section(name: str) -> Section:
 
 
 async def check_validate(request: HookRequest, module: Path, file_path: Path) -> Section | None:
-    if not (module / TERRAFORM_DIRECTORY).is_dir():
+    if not (module.joinpath(TERRAFORM_DIRECTORY)).is_dir():
         return Section(
             header=clip(f'terraform validate did not run: run terraform init in {module}')
         )
@@ -118,7 +116,6 @@ async def check_tflint(request: HookRequest, module: Path, file_path: Path) -> l
 
 
 def render(sections: list[Section]) -> str:
-    """Join the sections under CONTEXT_LIMIT, ending with a count of the finding lines left out."""
     budget = CONTEXT_LIMIT - OMITTED_RESERVE
     kept: list[str] = []
     omitted = 0
@@ -126,7 +123,7 @@ def render(sections: list[Section]) -> str:
     for section in sections:
         header_cost = len(section.header) + 1
         if used + header_cost > budget:
-            omitted += len(section.lines)
+            omitted += len(section.lines) or 1
             continue
 
         kept.append(section.header)

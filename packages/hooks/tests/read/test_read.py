@@ -308,6 +308,25 @@ class TestOutputBudget:
         shown = sum(1 for line in lines[:-1] if line[:1].isdigit())
         assert lines[-1] == f'{2 * self.finding_count - shown} more findings omitted'
 
+    async def test_header_only_section_dropped_by_a_spent_budget_is_counted(
+        self, scenario: ReadScenario
+    ) -> None:
+        validate = create_validate_json(
+            *(
+                create_validate_diagnostic(f'Unsupported argument {number}', 'main.tf', number)
+                for number in range(self.finding_count)
+            )
+        )
+        scenario.script(validate, create_tflint_json(errors=(MISSING_PLUGIN,)))
+
+        context = await scenario.read('main.tf')
+
+        assert context is not None
+        lines = context.splitlines()
+        assert 'tflint --init' not in context
+        shown = sum(1 for line in lines[:-1] if line[:1].isdigit())
+        assert lines[-1] == f'{self.finding_count - shown + 1} more findings omitted'
+
     async def test_wire_envelope_carries_the_text(self, scenario: ReadScenario) -> None:
         scenario.script(
             create_validate_json(create_validate_diagnostic('Bad', 'main.tf', 2)),
