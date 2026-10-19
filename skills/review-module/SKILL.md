@@ -66,10 +66,13 @@ find the backend. Note where state lives and whether the backend config
 is in the repo at all; a partial backend whose keys are supplied
 elsewhere goes in Not verified and caps the verdict.
 
-For a module directory, `describe` merges `files`, `data_sources`, `modules`,
-`resources`, `variables`, and `outputs` into the top-level response and also
-returns the detailed `module` payload. For a file, use `file.declares`,
-`file.reads`, and `file.referenced_by` to find sibling consumers.
+For a module directory or a `.tf` file, `describe` returns `path`, `kind`,
+`variables`, `outputs`, `resources`, `data_sources`, `module_calls`,
+`required_providers` and `problems`; for a `.tf` file that is a summary of that
+file's blocks only. Each entry carries its file and line range. For a `.tfvars`
+file it returns `path`, `kind`, `declared`, `undeclared` and `problems`. To find
+a file's sibling consumers, describe the containing module directory, then read
+or search the sibling files for references.
 
 For any question that crosses roots, dispatch `terraform-researcher` with the question
 rather than guessing; report what the repository does and does not establish.
