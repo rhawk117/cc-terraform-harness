@@ -21,6 +21,7 @@ from tf_harness_hooks.domain import (
 )
 from tf_harness_hooks.fmt import format_file
 from tf_harness_hooks.policy import HookFilePolicy, runner_options
+from tf_harness_hooks.read import report_file_findings
 from tf_harness_hooks.schemas import HookEvent
 
 if TYPE_CHECKING:
@@ -34,7 +35,7 @@ USAGE_ERROR = 2
 
 
 def build_handlers() -> dict[Subcommand, Handler]:
-    return {**default_handlers(), 'fmt': format_file}
+    return {**default_handlers(), 'fmt': format_file, 'read': report_file_findings}
 
 
 def find_subcommand(argv: Sequence[str]) -> Subcommand | None:
