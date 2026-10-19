@@ -45,6 +45,3 @@ class TestPluginManifest:
     def test_manifest_declares_no_inline_servers(self, claude_plugin: PluginInventory) -> None:
         assert 'mcpServers' not in claude_plugin.manifest.contents
         assert 'lspServers' not in claude_plugin.manifest.contents
-
-    def test_hooks_file_is_an_empty_config(self, claude_plugin: PluginInventory) -> None:
-        assert claude_plugin.hooks.required_key('hooks') == {}

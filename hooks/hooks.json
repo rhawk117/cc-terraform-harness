@@ -1,3 +1,38 @@
 {
-  "hooks": {}
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "UV_PROJECT_ENVIRONMENT=\"${CLAUDE_PLUGIN_DATA}/hooks-venv\" uv run --project \"${CLAUDE_PLUGIN_ROOT}/packages/hooks\" tf-harness-hooks fmt",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "UV_PROJECT_ENVIRONMENT=\"${CLAUDE_PLUGIN_DATA}/hooks-venv\" uv run --project \"${CLAUDE_PLUGIN_ROOT}/packages/hooks\" tf-harness-hooks read",
+            "timeout": 90
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "UV_PROJECT_ENVIRONMENT=\"${CLAUDE_PLUGIN_DATA}/hooks-venv\" uv run --project \"${CLAUDE_PLUGIN_ROOT}/packages/hooks\" tf-harness-hooks session-start",
+            "timeout": 45
+          }
+        ]
+      }
+    ]
+  }
 }
