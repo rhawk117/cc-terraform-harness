@@ -136,6 +136,22 @@
       }
     },
     {
+      "address": "aws_db_instance.public",
+      "type": "aws_db_instance",
+      "change": {
+        "actions": [
+          "delete",
+          "create"
+        ],
+        "before": {
+          "publicly_accessible": false
+        },
+        "after": {
+          "publicly_accessible": true
+        }
+      }
+    },
+    {
       "address": "aws_rds_cluster.unguarded",
       "type": "aws_rds_cluster",
       "change": {

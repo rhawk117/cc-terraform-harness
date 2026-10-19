@@ -1,13 +1,17 @@
 import json
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
 from tf_harness_mcp.settings import Settings
+from tf_harness_mcp.tools.plan_digest.policy import mass_destroy
 
 if TYPE_CHECKING:
+    from _pytest.mark import ParameterSet
     from mcp import Client
+    from tf_harness_mcp.tools.plan_digest.domain import ActionKind
 
 RISKY_PLAN = Path(__file__).with_name('risky_plan.json')
 type Digest = dict[str, Any]
@@ -15,19 +19,38 @@ type Digest = dict[str, Any]
 
 def resource_flag_cases() -> pytest.MarkDecorator:
     cases = {
-        'destroy-stateful': 'aws_db_instance.retired',
-        'import': 'terraform_data.adopted',
-        'open-cidr': 'aws_security_group.open',
-        'public-flag': 'aws_s3_bucket.exposed',
-        'deletion-protection-off': 'aws_rds_cluster.unguarded',
-        'encryption-off': 'aws_rds_cluster.unguarded',
-        'iam-change': 'aws_iam_role_policy.grant',
-        'security-rule-change': 'aws_security_group.open',
-        'unsupported-action': 'terraform_data.odd',
+        'destroy-stateful': ('destroy-stateful', 'aws_db_instance.retired'),
+        'import': ('import', 'terraform_data.adopted'),
+        'open-cidr': ('open-cidr', 'aws_security_group.open'),
+        'public-acl': ('public-flag', 'aws_s3_bucket.exposed'),
+        'public-boolean': ('public-flag', 'aws_db_instance.public'),
+        'deletion-protection-off': ('deletion-protection-off', 'aws_rds_cluster.unguarded'),
+        'encryption-off': ('encryption-off', 'aws_rds_cluster.unguarded'),
+        'iam-change': ('iam-change', 'aws_iam_role_policy.grant'),
+        'security-rule-change': ('security-rule-change', 'aws_security_group.open'),
+        'unsupported-action': ('unsupported-action', 'terraform_data.odd'),
     }
     return pytest.mark.parametrize(
-        ('flag', 'address'), [pytest.param(*case, id=case[0]) for case in cases.items()]
+        ('flag', 'address'),
+        [pytest.param(*case, id=name) for name, case in cases.items()],
     )
+
+
+@dataclass(slots=True, kw_only=True, frozen=True)
+class MassDestroyBoundary:
+    name: str
+    destructive: int
+    expected: bool
+
+    @property
+    def param(self) -> ParameterSet:
+        return pytest.param(self, id=self.name)
+
+
+def mass_destroy_absolute_cases() -> pytest.MarkDecorator:
+    at_threshold = MassDestroyBoundary(name='at-threshold', destructive=10, expected=True)
+    below_threshold = MassDestroyBoundary(name='below-threshold', destructive=9, expected=False)
+    return pytest.mark.parametrize('boundary', [at_threshold.param, below_threshold.param])
 
 
 @pytest.fixture
@@ -119,6 +142,18 @@ class TestPlanFacts:
         assert content['resource_changes'][0]['flags'] == []
         assert content['plan_flags'] == []
         assert content['moves'] == content['imports'] == content['drifted'] == []
+
+
+@pytest.mark.unit
+class TestMassDestroy:
+    plan_size = 100
+
+    @mass_destroy_absolute_cases()
+    def test_mass_destroy_by_absolute_count_alone(self, boundary: MassDestroyBoundary) -> None:
+        actions: list[ActionKind] = ['delete'] * boundary.destructive
+        actions += ['update'] * (self.plan_size - boundary.destructive)
+
+        assert mass_destroy(actions, self.plan_size) is boundary.expected
 
 
 @pytest.mark.unit
