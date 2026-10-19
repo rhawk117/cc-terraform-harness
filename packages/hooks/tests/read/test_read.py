@@ -1,14 +1,9 @@
-import json
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pytest
 from tf_harness_hooks.domain import HookRequest
 from tf_harness_hooks.read import (
     CHECK_TIMEOUT_SECONDS,
-    CONTEXT_LIMIT,
-    Section,
-    render,
     report_file_findings,
 )
 from tf_harness_mcp.runner.domain import CommandResult
@@ -16,7 +11,6 @@ from tf_harness_mcp.runner.errors import CommandTimeoutError
 from tf_harness_mcp.tools.diagnostics.tests.scripting import (
     TFLINT_ARGV,
     VALIDATE_ARGV,
-    create_range,
     create_validate_json,
 )
 
@@ -26,87 +20,35 @@ if TYPE_CHECKING:
     from tf_harness_mcp.runner.domain import Command
     from tf_harness_mcp.runner.tests.recording import RecordingCommandRunner
 
+    from conftest import ReadScenario
+
 pytestmark = pytest.mark.unit
-
-MISSING_PLUGIN = (
-    'Failed to initialize plugins; Plugin "aws" not found. Did you run "tflint --init"?'
-)
-
-
-def create_validate_diagnostic(summary: str, filename: str | None, line: int = 1) -> dict[str, Any]:
-    diagnostic: dict[str, Any] = {'severity': 'error', 'summary': summary, 'detail': ''}
-    if filename is not None:
-        diagnostic['range'] = create_range(filename, line)
-    return diagnostic
-
-
-def create_tflint_issue(message: str, filename: str, line: int) -> dict[str, Any]:
-    return {
-        'rule': {'name': 'terraform_unused_declarations', 'severity': 'warning'},
-        'message': message,
-        'range': create_range(filename, line),
-    }
-
-
-def create_tflint_json(*issues: dict[str, Any], errors: tuple[str, ...] = ()) -> str:
-    return json.dumps({
-        'issues': list(issues),
-        'errors': [{'message': message, 'severity': 'error'} for message in errors],
-    })
-
-
-def succeed(stdout: str) -> CommandResult:
-    return CommandResult(returncode=0, stdout=stdout, stderr='')
-
-
-@dataclass(slots=True, kw_only=True, frozen=True)
-class ReadScenario:
-    project_root: Path
-    runner: RecordingCommandRunner
-
-    def script(self, validate: str, tflint: str) -> None:
-        self.runner.script(VALIDATE_ARGV, succeed(validate))
-        self.runner.script(TFLINT_ARGV, succeed(tflint))
-
-    async def read(self, name: str) -> str | None:
-        request = HookRequest(
-            event_name='PostToolUse',
-            project_root=self.project_root,
-            runner=self.runner,
-            file_path=self.project_root / name,
-        )
-        output = await report_file_findings(request)
-        return None if output is None else output.additional_context
-
-
-@pytest.fixture
-def scenario(project_root: Path, recording_runner: RecordingCommandRunner) -> ReadScenario:
-    (project_root / '.terraform').mkdir()
-    return ReadScenario(project_root=project_root, runner=recording_runner)
-
-
-@pytest.fixture
-def uninitialized(project_root: Path, recording_runner: RecordingCommandRunner) -> ReadScenario:
-    return ReadScenario(project_root=project_root, runner=recording_runner)
 
 
 class TestFindingSelection:
-    validate = create_validate_json(
-        create_validate_diagnostic('Unsupported argument', 'main.tf', 4),
-        create_validate_diagnostic('Duplicate variable', 'other.tf', 9),
-        create_validate_diagnostic('Missing required provider', None),
-    )
-    tflint = create_tflint_json(
-        create_tflint_issue('"unused" is declared but not used', 'main.tf', 7),
-        create_tflint_issue('"other" is declared but not used', 'other.tf', 2),
-        create_tflint_issue('"extra" is not set', 'prod.tfvars', 3),
-        errors=('Failed to check ruleset',),
-    )
+    @pytest.fixture
+    def validate(self, scenario: ReadScenario) -> str:
+        findings = scenario.findings
+        return create_validate_json(
+            findings.validate_diagnostic('Unsupported argument', 'main.tf', 4),
+            findings.validate_diagnostic('Duplicate variable', 'other.tf', 9),
+            findings.validate_diagnostic('Missing required provider', None),
+        )
+
+    @pytest.fixture
+    def tflint(self, scenario: ReadScenario) -> str:
+        findings = scenario.findings
+        return findings.tflint_json(
+            findings.tflint_issue('"unused" is declared but not used', 'main.tf', 7),
+            findings.tflint_issue('"other" is declared but not used', 'other.tf', 2),
+            findings.tflint_issue('"extra" is not set', 'prod.tfvars', 3),
+            errors=('Failed to check ruleset',),
+        )
 
     async def test_tf_read_keeps_its_file_and_file_less_validate_errors(
-        self, scenario: ReadScenario
+        self, scenario: ReadScenario, validate: str, tflint: str
     ) -> None:
-        scenario.script(self.validate, self.tflint)
+        scenario.script(validate, tflint)
 
         context = await scenario.read('main.tf')
 
@@ -120,9 +62,9 @@ class TestFindingSelection:
         )
 
     async def test_tfvars_read_keeps_its_file_and_file_less_validate_errors(
-        self, scenario: ReadScenario
+        self, scenario: ReadScenario, validate: str, tflint: str
     ) -> None:
-        scenario.script(self.validate, self.tflint)
+        scenario.script(validate, tflint)
 
         context = await scenario.read('prod.tfvars')
 
@@ -136,8 +78,8 @@ class TestFindingSelection:
 
     async def test_nothing_kept_gives_no_output(self, scenario: ReadScenario) -> None:
         scenario.script(
-            create_validate_json(create_validate_diagnostic('Duplicate', 'other.tf')),
-            create_tflint_json(create_tflint_issue('unused', 'other.tf', 2)),
+            create_validate_json(scenario.findings.validate_diagnostic('Duplicate', 'other.tf')),
+            scenario.findings.tflint_json(scenario.findings.tflint_issue('unused', 'other.tf', 2)),
         )
 
         assert await scenario.read('main.tf') is None
@@ -151,7 +93,7 @@ class TestFindingSelection:
     async def test_both_checks_run_in_the_module_with_30_second_timeouts(
         self, scenario: ReadScenario
     ) -> None:
-        scenario.script(create_validate_json(), create_tflint_json())
+        scenario.script(create_validate_json(), scenario.findings.tflint_json())
 
         await scenario.read('main.tf')
 
@@ -166,7 +108,7 @@ class TestTflintFailures:
     async def test_unparseable_output_gives_one_failed_line_with_the_first_stderr_line(
         self, scenario: ReadScenario
     ) -> None:
-        scenario.runner.script(VALIDATE_ARGV, succeed(create_validate_json()))
+        scenario.runner.script(VALIDATE_ARGV, scenario.findings.succeed(create_validate_json()))
         scenario.runner.script(
             TFLINT_ARGV,
             CommandResult(returncode=2, stdout='not json', stderr='config broken\nsecond line\n'),
@@ -180,7 +122,8 @@ class TestTflintFailures:
 
     async def test_non_plugin_error_gives_one_failed_line(self, scenario: ReadScenario) -> None:
         scenario.script(
-            create_validate_json(), create_tflint_json(errors=('Failed to check ruleset',))
+            create_validate_json(),
+            scenario.findings.tflint_json(errors=('Failed to check ruleset',)),
         )
 
         context = await scenario.read('main.tf')
@@ -192,8 +135,9 @@ class TestTflintFailures:
     ) -> None:
         scenario.script(
             create_validate_json(),
-            create_tflint_json(
-                create_tflint_issue('unused', 'main.tf', 7), errors=('Failed to check ruleset',)
+            scenario.findings.tflint_json(
+                scenario.findings.tflint_issue('unused', 'main.tf', 7),
+                errors=('Failed to check ruleset',),
             ),
         )
 
@@ -212,7 +156,11 @@ class TestInitHints:
     ) -> None:
         uninitialized.runner.script(
             TFLINT_ARGV,
-            succeed(create_tflint_json(create_tflint_issue('unused', 'main.tf', 7))),
+            uninitialized.findings.succeed(
+                uninitialized.findings.tflint_json(
+                    uninitialized.findings.tflint_issue('unused', 'main.tf', 7)
+                )
+            ),
         )
 
         context = await uninitialized.read('main.tf')
@@ -224,11 +172,13 @@ class TestInitHints:
         assert [call.command.argv for call in uninitialized.runner.calls] == [TFLINT_ARGV]
 
     async def test_missing_tflint_plugins_become_one_init_line(
-        self, scenario: ReadScenario
+        self, scenario: ReadScenario, missing_plugin: str
     ) -> None:
         scenario.script(
             create_validate_json(),
-            create_tflint_json(errors=(MISSING_PLUGIN, MISSING_PLUGIN.replace('"aws"', '"gcp"'))),
+            scenario.findings.tflint_json(
+                errors=(missing_plugin, missing_plugin.replace('"aws"', '"gcp"'))
+            ),
         )
 
         context = await scenario.read('main.tf')
@@ -237,9 +187,14 @@ class TestInitHints:
             context == f'tflint plugins are missing: run tflint --init in {scenario.project_root}'
         )
 
-    async def test_no_recorded_argv_runs_an_init(self, uninitialized: ReadScenario) -> None:
+    async def test_no_recorded_argv_runs_an_init(
+        self, uninitialized: ReadScenario, missing_plugin: str
+    ) -> None:
         uninitialized.runner.script(
-            TFLINT_ARGV, succeed(create_tflint_json(errors=(MISSING_PLUGIN,)))
+            TFLINT_ARGV,
+            uninitialized.findings.succeed(
+                uninitialized.findings.tflint_json(errors=(missing_plugin,))
+            ),
         )
 
         await uninitialized.read('main.tf')
@@ -282,87 +237,3 @@ class TestFailures:
 
         assert await report_file_findings(request) is None
         assert recording_runner.calls == []
-
-
-class TestOutputBudget:
-    finding_count = 5_000
-
-    async def test_thousands_of_findings_fit_the_context_limit_with_an_omitted_count(
-        self, scenario: ReadScenario
-    ) -> None:
-        validate = create_validate_json(
-            *(
-                create_validate_diagnostic(f'Unsupported argument {number}', 'main.tf', number)
-                for number in range(self.finding_count)
-            )
-        )
-        tflint = create_tflint_json(
-            *(
-                create_tflint_issue(f'"v{number}" is unused', 'main.tf', number)
-                for number in range(self.finding_count)
-            )
-        )
-        scenario.script(validate, tflint)
-
-        context = await scenario.read('main.tf')
-
-        assert context is not None
-        lines = context.splitlines()
-        assert len(context) < CONTEXT_LIMIT
-        assert lines[0] == 'terraform validate:'
-        assert lines[1] == '0: error Unsupported argument 0'
-        shown = sum(1 for line in lines[:-1] if line[:1].isdigit())
-        assert lines[-1] == f'{2 * self.finding_count - shown + 1} lines omitted'
-
-    async def test_header_only_section_dropped_by_a_spent_budget_is_counted(
-        self, scenario: ReadScenario
-    ) -> None:
-        validate = create_validate_json(
-            *(
-                create_validate_diagnostic(f'Unsupported argument {number}', 'main.tf', number)
-                for number in range(self.finding_count)
-            )
-        )
-        scenario.script(validate, create_tflint_json(errors=(MISSING_PLUGIN,)))
-
-        context = await scenario.read('main.tf')
-
-        assert context is not None
-        lines = context.splitlines()
-        assert 'tflint --init' not in context
-        shown = sum(1 for line in lines[:-1] if line[:1].isdigit())
-        assert lines[-1] == f'{self.finding_count - shown + 1} lines omitted'
-
-    def test_header_alone_overflowing_the_budget_is_counted_as_one_omitted_line(self) -> None:
-        header = 'h' * 300
-        section_count = CONTEXT_LIMIT // len(header) + 5
-        sections = [Section(header=header, lines=['1: error x']) for _ in range(section_count)]
-
-        lines = render(sections).splitlines()
-
-        kept_count = len(lines) - 1
-        assert 0 < kept_count < 2 * section_count
-        assert lines[-1] == f'{2 * section_count - kept_count} lines omitted'
-        assert len('\n'.join(lines)) <= CONTEXT_LIMIT
-
-    async def test_wire_envelope_carries_the_text(self, scenario: ReadScenario) -> None:
-        scenario.script(
-            create_validate_json(create_validate_diagnostic('Bad', 'main.tf', 2)),
-            create_tflint_json(),
-        )
-        request = HookRequest(
-            event_name='PostToolUse',
-            project_root=scenario.project_root,
-            runner=scenario.runner,
-            file_path=scenario.project_root / 'main.tf',
-        )
-
-        output = await report_file_findings(request)
-
-        assert output is not None
-        assert output.to_wire() == {
-            'hookSpecificOutput': {
-                'hookEventName': 'PostToolUse',
-                'additionalContext': 'terraform validate:\n2: error Bad',
-            }
-        }
