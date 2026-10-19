@@ -10,3 +10,25 @@ dist/
 plugins/vibe-code/evals/results/
 plugins/python-harness/evals/results/
 coverage.xml
+
+# Sandbox shadow mounts (character devices); anchored without a trailing slash
+/.idea
+/.vscode
+/.bashrc
+/.bash_profile
+/.profile
+/.zshrc
+/.zprofile
+/.gitconfig
+/.gitmodules
+/.ripgreprc
+/.claude/settings.local.json
+/.claude/scheduled_tasks.json
+/.claude/launch.json
+/.claude/loop.md
+/.claude/routines
+/.claude/commands
+/.claude/agents
+/.claude/output-styles
+/.claude/workflows
+/.claude/skills

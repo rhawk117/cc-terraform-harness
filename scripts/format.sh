@@ -30,11 +30,17 @@ run_step() {
   return 0
 }
 
+files_with_extension() {
+  local pattern=$1
+  shift
+  git ls-files -z -- "$pattern" | xargs -0 -r -- "$@" --
+}
+
 write_format() {
-  run_step "ruff format" uv run ruff format .
-  run_step "ruff lint autofix" uv run ruff check --fix --unsafe-fixes --fix-only .
-  run_step "shfmt" uv run shfmt -w -i 2 -ci .
-  run_step "mdformat" uv run mdformat .
+  run_step "ruff format" files_with_extension '*.py' uv run ruff format
+  run_step "ruff lint autofix" files_with_extension '*.py' uv run ruff check --fix --unsafe-fixes --fix-only
+  run_step "shfmt" files_with_extension '*.sh' uv run shfmt -w -i 2 -ci
+  run_step "mdformat" files_with_extension '*.md' uv run mdformat
 }
 
 main() {

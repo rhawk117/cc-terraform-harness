@@ -1,1 +1,18 @@
-{}
+{
+  "mcpServers": {
+    "terraform": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "${CLAUDE_PLUGIN_ROOT}/packages/mcp",
+        "tf-harness-mcp",
+        "--project-root",
+        "${CLAUDE_PROJECT_DIR}"
+      ],
+      "env": {
+        "UV_PROJECT_ENVIRONMENT": "${CLAUDE_PLUGIN_DATA}/venv"
+      }
+    }
+  }
+}

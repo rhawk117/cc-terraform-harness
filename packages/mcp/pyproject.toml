@@ -1,0 +1,27 @@
+[project]
+name = "tf-harness-mcp"
+version = "0.1.0"
+description = "Terraform MCP server that checks modules, digests plans and reads provider schemas"
+readme = "README.md"
+authors = [
+    { name = "rhawk117", email = "hawkinsry19@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "anyio>=4.15.1",
+    "mcp>=2.3.0",
+    "pydantic>=2.14.1",
+    "pydantic-settings>=2.16.0",
+    "tree-sitter>=0.25.2,!=0.26.0",
+    "tree-sitter-hcl[core]>=1.2.0",
+]
+
+[project.scripts]
+tf-harness-mcp = "tf_harness_mcp:main"
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+wheel-exclude = ["tests"]

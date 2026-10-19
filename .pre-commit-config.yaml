@@ -1,3 +1,11 @@
+exclude: |
+  (?x)^(
+    \.idea|\.vscode|
+    \.bashrc|\.bash_profile|\.profile|\.zshrc|\.zprofile|
+    \.gitconfig|\.gitmodules|\.ripgreprc|
+    \.claude/(settings\.local\.json|scheduled_tasks\.json|launch\.json|loop\.md|routines|commands|agents|output-styles|workflows|skills)
+  )(/|$)
+
 default_stages: [pre-commit]
 default_install_hook_types:
   - pre-commit

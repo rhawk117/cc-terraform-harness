@@ -17,7 +17,7 @@ These rules add to the Python rules, which still apply in full.
 - Bundle collaborators into a frozen dataclass fixture. Use `@pytest.mark.usefixtures` for fixtures the body never references.
 - Fake repositories over mocks. `monkeypatch` is a last resort for process state the code reads directly; inject the value instead, since `monkeypatch.chdir()` means the code should take a root path.
 - No side effects, no races, no inline imports of the code under test.
-- Test support modules (fakes, strategies, fixture plugins) live in `src/<package>/<concept>/tests`, load through conftest plugins and stay out of the wheel. Tests live in top-level `tests/`.
+- Test support modules (fakes, strategies, fixture plugins) live in `src/<package>/<concept>/tests`, load through conftest plugins and stay out of the wheel. A workspace package's tests live in `packages/<package>/tests`, which `testpaths` in `pytest.toml` collects; top-level `tests/` holds the repository's own tests.
 
 ## Helpers
 
