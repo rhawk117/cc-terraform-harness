@@ -131,7 +131,9 @@ def exposure_flags(after: dict[str, Any] | None) -> set[Flag]:
     return found
 
 
-def transition_flags(before: dict[str, Any] | None, after: dict[str, Any] | None) -> set[Flag]:
+def transition_flags(
+    before: dict[str, Any] | None, after: dict[str, Any] | None, unknown: dict[str, Any]
+) -> set[Flag]:
     if before is None or after is None:
         return set()
 
@@ -139,7 +141,8 @@ def transition_flags(before: dict[str, Any] | None, after: dict[str, Any] | None
     if any(before.get(key) is True and after.get(key) is False for key in PROTECTION_KEYS):
         found.add('deletion-protection-off')
 
-    if any(before.get(key) and not after.get(key) for key in ENCRYPTION_KEYS):
+    known_keys = ENCRYPTION_KEYS - unknown.keys()
+    if any(before.get(key) and not after.get(key) for key in known_keys):
         found.add('encryption-off')
 
     return found

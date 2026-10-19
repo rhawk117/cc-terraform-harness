@@ -88,6 +88,13 @@ class TestPlanFacts:
 
         assert 'open-cidr' not in flags
 
+    async def test_does_not_flag_an_encryption_key_that_became_unknown(
+        self, risky_digest: Digest
+    ) -> None:
+        flags = find_resource(risky_digest, 'aws_rds_cluster.rekeyed')['flags']
+
+        assert 'encryption-off' not in flags
+
     @pytest.mark.parametrize('flag', ['mass-destroy', 'drift', 'unsupported-action'])
     async def test_plan_flags_name_the_plan_wide_risk(
         self, risky_digest: Digest, flag: str

@@ -153,6 +153,22 @@
       }
     },
     {
+      "address": "aws_rds_cluster.rekeyed",
+      "type": "aws_rds_cluster",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "kms_key_id": "key-a"
+        },
+        "after": {},
+        "after_unknown": {
+          "kms_key_id": true
+        }
+      }
+    },
+    {
       "address": "aws_iam_role_policy.grant",
       "type": "aws_iam_role_policy",
       "change": {

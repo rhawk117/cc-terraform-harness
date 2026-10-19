@@ -12,6 +12,7 @@ class Change(BaseModel):
     before: JsonObject | None = None
     after: JsonObject | None = None
     after_sensitive: JsonObject | bool | None = None
+    after_unknown: JsonObject | bool | None = None
     replace_paths: list[list[str | int]] | None = None
     importing: JsonObject | None = None
 

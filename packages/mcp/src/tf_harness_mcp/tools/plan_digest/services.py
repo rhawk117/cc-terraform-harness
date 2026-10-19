@@ -59,7 +59,8 @@ def change_flags(item: PlannedResourceChange, action: ActionKind) -> list[Flag]:
     if action != 'delete':
         flags |= exposure_flags(change.after)
 
-    flags |= transition_flags(change.before, change.after)
+    unknown = change.after_unknown if isinstance(change.after_unknown, dict) else {}
+    flags |= transition_flags(change.before, change.after, unknown)
     if change.importing is not None:
         flags.add('import')
 
