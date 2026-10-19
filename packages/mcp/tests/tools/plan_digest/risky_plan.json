@@ -1,0 +1,188 @@
+{
+  "format_version": "1.2",
+  "planned_values": {},
+  "resource_changes": [
+    {
+      "address": "aws_db_instance.retired",
+      "type": "aws_db_instance",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "engine": "postgres"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "aws_s3_bucket.gone",
+      "type": "aws_s3_bucket",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "acl": "private"
+        },
+        "after": null
+      }
+    },
+    {
+      "address": "aws_db_instance.replaced",
+      "type": "aws_db_instance",
+      "change": {
+        "actions": [
+          "delete",
+          "create"
+        ],
+        "before": {
+          "engine": "mysql"
+        },
+        "after": {
+          "engine": "postgres"
+        },
+        "replace_paths": [
+          [
+            "engine"
+          ],
+          [
+            "tags",
+            0
+          ]
+        ],
+        "after_sensitive": {
+          "password": true,
+          "name": false
+        }
+      }
+    },
+    {
+      "address": "aws_security_group.open",
+      "type": "aws_security_group",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "ingress": [
+            {
+              "cidr_blocks": [
+                "10.0.0.0/8"
+              ]
+            }
+          ]
+        },
+        "after": {
+          "ingress": [
+            {
+              "cidr_blocks": [
+                "0.0.0.0/0"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "address": "aws_s3_bucket.exposed",
+      "type": "aws_s3_bucket",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "acl": "public-read"
+        }
+      }
+    },
+    {
+      "address": "aws_rds_cluster.unguarded",
+      "type": "aws_rds_cluster",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "deletion_protection": true,
+          "storage_encrypted": true
+        },
+        "after": {
+          "deletion_protection": false,
+          "storage_encrypted": false
+        }
+      }
+    },
+    {
+      "address": "aws_iam_role_policy.grant",
+      "type": "aws_iam_role_policy",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "name": "grant"
+        }
+      }
+    },
+    {
+      "address": "terraform_data.adopted",
+      "type": "terraform_data",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "input": "a"
+        },
+        "after": {
+          "input": "b"
+        },
+        "importing": {
+          "id": "abc"
+        }
+      }
+    },
+    {
+      "address": "terraform_data.odd",
+      "type": "terraform_data",
+      "change": {
+        "actions": [
+          "forget",
+          "x"
+        ],
+        "before": null,
+        "after": null
+      }
+    },
+    {
+      "address": "terraform_data.renamed",
+      "type": "terraform_data",
+      "change": {
+        "actions": [
+          "no-op"
+        ],
+        "before": {
+          "input": "a"
+        },
+        "after": {
+          "input": "a"
+        }
+      },
+      "previous_address": "terraform_data.original"
+    }
+  ],
+  "resource_drift": [
+    {
+      "address": "aws_instance.drifted",
+      "type": "aws_instance",
+      "change": {
+        "actions": [
+          "update"
+        ]
+      }
+    }
+  ]
+}
