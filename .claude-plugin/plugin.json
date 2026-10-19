@@ -3,24 +3,23 @@
   "name": "terraform-harness",
   "displayName": "terraform-harness",
   "version": "0.1.0",
-  "description": "Takes a piece of work from the first question to a merged PR in Claude Code, with the decisions left to you and a task closed only when its verification commands pass. The plugin code is not yet ported.",
+  "description": "A harness for Terraform and IaC repositories in Claude Code. A Terraform MCP server describes modules, reports validate and tflint diagnostics, digests plans, traces change impact and looks up provider schemas. Four subagents, five skills, terraform-ls, and three hooks that format and check .tf files as Claude works.",
   "homepage": "https://github.com/rhawk117/cc-terraform-harness",
   "repository": "https://github.com/rhawk117/cc-terraform-harness",
   "author": {
     "name": "rhawk117"
   },
   "keywords": [
-    "workflow",
-    "human-in-the-loop",
-    "agents",
+    "terraform",
+    "iac",
+    "infrastructure-as-code",
+    "tflint",
+    "terraform-plan",
+    "provider-schema",
     "subagents",
-    "model-routing",
-    "tickets",
-    "planning",
-    "sprint-loop",
-    "verification",
-    "code-review",
+    "skills",
     "hooks",
-    "mcp"
+    "mcp",
+    "lsp"
   ]
 }
