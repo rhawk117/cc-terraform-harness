@@ -63,7 +63,7 @@ class TestRealReadChecks:
         context = await self.read(project_root, 'main.tf')
 
         assert context is not None
-        assert context.startswith('terraform validate did not run: run terraform init in ')
+        assert context.startswith('terraform validate skipped: ')
         assert 'Reference to undeclared' not in context
 
     async def test_uninstalled_plugin_gives_the_tflint_init_hint(self, project_root: Path) -> None:

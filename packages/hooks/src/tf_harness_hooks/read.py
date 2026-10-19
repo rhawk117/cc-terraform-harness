@@ -67,7 +67,9 @@ def timeout_section(name: str) -> Section:
 async def check_validate(request: HookRequest, module: Path, file_path: Path) -> Section | None:
     if not (module.joinpath(TERRAFORM_DIRECTORY)).is_dir():
         return Section(
-            header=clip(f'terraform validate did not run: run terraform init in {module}')
+            header=clip(
+                f'terraform validate skipped: {module} has no {TERRAFORM_DIRECTORY} directory'
+            )
         )
 
     report = await run_check(request, ValidateCheck(timeout_seconds=CHECK_TIMEOUT_SECONDS), module)

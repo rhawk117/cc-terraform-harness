@@ -219,7 +219,7 @@ class TestInitHints:
 
         assert context is not None
         init_line, *tflint_lines = context.splitlines()
-        assert init_line.startswith('terraform validate did not run: run terraform init in ')
+        assert init_line.startswith('terraform validate skipped: ')
         assert tflint_lines[0] == 'tflint:'
         assert [call.command.argv for call in uninitialized.runner.calls] == [TFLINT_ARGV]
 
