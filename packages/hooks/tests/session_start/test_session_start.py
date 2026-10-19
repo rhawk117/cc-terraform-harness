@@ -4,12 +4,7 @@ from typing import TYPE_CHECKING
 import pytest
 from tf_harness_hooks.cli import create_hook_specs
 from tf_harness_hooks.domain import HookRequest
-from tf_harness_hooks.policy import (
-    SESSION_START_PROBES,
-    TERRAFORM_LS_VERSION_ARGV,
-    TERRAFORM_VERSION_ARGV,
-    TFLINT_VERSION_ARGV,
-)
+from tf_harness_hooks.policy import TOOL_PROBES
 from tf_harness_hooks.session_start import PROBE_TIMEOUT_SECONDS, report_tool_versions
 from tf_harness_mcp.runner.domain import Command, CommandResult
 from tf_harness_mcp.runner.errors import CommandTimeoutError
@@ -28,6 +23,8 @@ pytestmark = pytest.mark.unit
 
 TERRAFORM_JSON = json.dumps({'terraform_version': '1.15.8', 'platform': 'linux_amd64'})
 TFLINT_OUTPUT = 'TFLint version 0.64.0\n+ ruleset.terraform (0.15.0-bundled)\n'
+SESSION_START_PROBES = tuple(probe.argv for probe in TOOL_PROBES)
+TERRAFORM_VERSION_ARGV, TFLINT_VERSION_ARGV, TERRAFORM_LS_VERSION_ARGV = SESSION_START_PROBES
 TERRAFORM_LS_OUTPUT = '0.39.0\nplatform: linux/amd64\ngo: go1.24\ncompiler: gc\n'
 
 
