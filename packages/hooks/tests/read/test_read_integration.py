@@ -47,7 +47,11 @@ class TestRealReadChecks:
 
     async def test_clean_initialized_module_gives_no_output(self, project_root: Path) -> None:
         (project_root / '.terraform').mkdir()
-        (project_root / 'main.tf').write_text('variable "x" {\n  type = string\n}\n')
+        (project_root / 'main.tf').write_text(
+            'terraform {\n  required_version = ">= 1.5"\n}\n\n'
+            'variable "x" {\n  type = string\n}\n\n'
+            'output "x" {\n  value = var.x\n}\n'
+        )
 
         assert await self.read(project_root, 'main.tf') is None
 
