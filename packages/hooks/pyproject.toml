@@ -1,0 +1,26 @@
+[project]
+name = "tf-harness-hooks"
+version = "0.1.0"
+description = "Claude Code hooks that format terraform files, read what an edit changed and open sessions with context"
+authors = [
+    { name = "rhawk117", email = "hawkinsry19@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "anyio>=4.15.1",
+    "pydantic>=2.14.1",
+    "tf-harness-mcp",
+]
+
+[project.scripts]
+tf-harness-hooks = "tf_harness_hooks:main"
+
+[tool.uv.sources]
+tf-harness-mcp = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+wheel-exclude = ["tests"]

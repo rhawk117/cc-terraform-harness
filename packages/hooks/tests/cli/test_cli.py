@@ -1,0 +1,69 @@
+import json
+from typing import TYPE_CHECKING
+
+import pytest
+from tf_harness_hooks.cli import main
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from tests.conftest import HookHarness
+
+
+pytestmark = pytest.mark.unit
+
+
+class TestHookOutput:
+    @pytest.mark.parametrize('suffix', ['main.tf', 'prod.tfvars'])
+    def test_terraform_file_reaches_the_handler_and_prints_the_envelope(
+        self, hook_harness: HookHarness, suffix: str
+    ) -> None:
+        run = hook_harness.run(
+            'read',
+            hook_harness.event(hook_harness.project_root / suffix),
+            project_dir=str(hook_harness.project_root),
+        )
+
+        assert run.exit_code == 0
+        assert json.loads(run.stdout) == {
+            'hookSpecificOutput': {'hookEventName': 'PostToolUse', 'additionalContext': 'probed'}
+        }
+        assert len(hook_harness.runner.calls) == 1
+
+    def test_session_start_needs_no_file_path(self, hook_harness: HookHarness) -> None:
+        run = hook_harness.run(
+            'session-start',
+            hook_harness.event(None, event_name='SessionStart'),
+            project_dir=str(hook_harness.project_root),
+        )
+
+        assert run.exit_code == 0
+        assert json.loads(run.stdout)['hookSpecificOutput']['hookEventName'] == 'SessionStart'
+
+    def test_default_handler_prints_nothing(
+        self, hook_harness: HookHarness, project_root: Path
+    ) -> None:
+        run = hook_harness.run(
+            'fmt',
+            hook_harness.event(project_root / 'main.tf'),
+            project_dir=str(project_root),
+            probe=False,
+        )
+
+        assert (run.exit_code, run.stdout) == (0, '')
+
+
+class TestInvalidInput:
+    def test_malformed_event_is_a_non_blocking_error(self, hook_harness: HookHarness) -> None:
+        run = hook_harness.run(
+            'fmt', '{"tool_input": 3}', project_dir=str(hook_harness.project_root)
+        )
+
+        assert run.exit_code == 1
+        assert 'invalid hook event' in run.stderr
+
+    def test_unknown_subcommand_is_a_usage_error(self, capsys: pytest.CaptureFixture[str]) -> None:
+        exit_code = main(['bogus'], {})
+
+        assert exit_code == 2
+        assert 'usage' in capsys.readouterr().err
