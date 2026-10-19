@@ -22,17 +22,16 @@ setup: ## Setup Developer Environment
 sync: ## Sync all workspace packages and dependency groups
 	$(UV) sync --all-packages --all-groups
 
-format: ## Run the quality script's formatters
+format: ## Run the formatters
 	bash ./scripts/format.sh
 
-lint: ## Run the quality script's linters
+lint: ## Run the linters
 	bash ./scripts/lint.sh
 
-test: ## Run the quality script's tests
-	./scripts/quality.sh --test
+test: ## Run pytest with coverage
+	$(UV) run pytest
 
-quality: ## Run the full quality script
-	./scripts/quality.sh
+quality: format lint test ## Run the formatters, the linters and the tests
 
 pre-commit: ## Run pre-commit on all files
 	$(UV) run pre-commit run --all-files
