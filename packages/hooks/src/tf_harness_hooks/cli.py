@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import anyio
 from pydantic import ValidationError
+from tf_harness_mcp.policies.containment import resolve_project_path
 from tf_harness_mcp.runner.process import create_command_runner
 
 from tf_harness_hooks.domain import (
@@ -18,17 +19,22 @@ from tf_harness_hooks.domain import (
     HookSession,
     default_handlers,
 )
-from tf_harness_hooks.policy import HookFilePolicy
+from tf_harness_hooks.fmt import format_file
+from tf_harness_hooks.policy import HookFilePolicy, runner_options
 from tf_harness_hooks.schemas import HookEvent
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-    from tf_harness_hooks.domain import Subcommand
+    from tf_harness_hooks.domain import Handler, Subcommand
 
 PROJECT_DIR_VARIABLE = 'CLAUDE_PROJECT_DIR'
 INVALID_EVENT = 1
 USAGE_ERROR = 2
+
+
+def build_handlers() -> dict[Subcommand, Handler]:
+    return {**default_handlers(), 'fmt': format_file}
 
 
 def find_subcommand(argv: Sequence[str]) -> Subcommand | None:
@@ -75,7 +81,9 @@ def run_hook(session: HookSession) -> int:
         event_name=event.hook_event_name,
         project_root=project_root,
         runner=session.runner,
-        file_path=event.file_path,
+        file_path=None
+        if event.file_path is None
+        else resolve_project_path(project_root, event.file_path),
     )
     output = anyio.run(session.handlers[session.subcommand], request)
     if output is not None:
@@ -96,7 +104,7 @@ def main(argv: Sequence[str] | None = None, environ: Mapping[str, str] | None = 
         subcommand=subcommand,
         environ=env,
         io=HookIo(stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr),
-        runner=create_command_runner(env),
-        handlers=default_handlers(),
+        runner=create_command_runner(env, runner_options(subcommand)),
+        handlers=build_handlers(),
     )
     return run_hook(session)

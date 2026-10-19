@@ -30,6 +30,20 @@ class TestHookOutput:
         }
         assert len(hook_harness.runner.calls) == 1
 
+    def test_handler_receives_the_resolved_path(
+        self, hook_harness: HookHarness, project_root: Path
+    ) -> None:
+        (project_root / 'sub').mkdir()
+        hook_harness.run(
+            'read',
+            hook_harness.event(project_root / 'sub' / '..' / 'main.tf'),
+            project_dir=str(project_root),
+        )
+
+        assert [request.file_path for request in hook_harness.requests] == [
+            project_root.resolve() / 'main.tf'
+        ]
+
     def test_session_start_needs_no_file_path(self, hook_harness: HookHarness) -> None:
         run = hook_harness.run(
             'session-start',
