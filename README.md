@@ -20,7 +20,11 @@ A deterministic Claude Code plugin acting as a harness for terraform and IAC rep
 ## Hooks
 
 - `fmt`: runs after a Write or Edit to format the changed file.
+
 - `read`: runs after a Read to report diagnostics on the file.
+
+  The read hook runs `terraform validate` and `tflint` (including any plugins that `.tflint.hcl` configures) in the read file's directory on every `.tf` or `.tfvars` Read.
+
 - `session-start`: runs when a session starts, clears or compacts.
 
 ## MCP server
