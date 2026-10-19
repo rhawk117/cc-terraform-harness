@@ -9,10 +9,6 @@ from pydantic import ValidationError
 from tf_harness_mcp.policies import containment
 from tf_harness_mcp.policies.budget import create_output_budget
 from tf_harness_mcp.tools.plan_digest.domain import (
-    NO_OP,
-    REPLACEMENT_ACTIONS,
-    ActionKind,
-    Flag,
     Move,
     ResourceChange,
 )
@@ -37,11 +33,8 @@ if TYPE_CHECKING:
 
     from tf_harness_mcp.policies.budget import OutputBudget
     from tf_harness_mcp.settings import Settings
+    from tf_harness_mcp.tools.plan_digest.domain import ActionKind, Flag
     from tf_harness_mcp.tools.plan_digest.schemas import PlannedResourceChange
-
-
-def is_replacement(actions: list[str]) -> bool:
-    return tuple(actions) in REPLACEMENT_ACTIONS
 
 
 def get_action_label(change: ResourceChange) -> str:
@@ -60,19 +53,18 @@ def parse_plan(path: Path, raw: bytes) -> PlanDocument:
     return document
 
 
-def change_flags(item: PlannedResourceChange) -> list[Flag]:
+def change_flags(item: PlannedResourceChange, action: ActionKind) -> list[Flag]:
     change = item.change
-    action = classify(change.actions)
     flags = set(type_flags(item.type, action))
-    if action is not ActionKind.DELETE:
+    if action != 'delete':
         flags |= exposure_flags(change.after)
 
     flags |= transition_flags(change.before, change.after)
     if change.importing is not None:
-        flags.add(Flag.IMPORT)
+        flags.add('import')
 
-    if action is ActionKind.UNSUPPORTED:
-        flags.add(Flag.UNSUPPORTED_ACTION)
+    if action == 'unsupported':
+        flags.add('unsupported-action')
 
     return sorted(flags)
 
@@ -86,16 +78,28 @@ def sensitive_keys(item: PlannedResourceChange) -> list[str]:
 
 
 def to_resource_change(item: PlannedResourceChange) -> ResourceChange:
+    kind = classify(item.change.actions)
     return ResourceChange(
         address=item.address,
         actions=item.change.actions,
-        replacement=is_replacement(item.change.actions),
+        kind=kind,
         forced_by=[
             '.'.join(str(segment) for segment in path) for path in item.change.replace_paths or []
         ],
         sensitive_attributes=sensitive_keys(item),
-        flags=change_flags(item),
+        flags=change_flags(item, kind),
     )
+
+
+def to_wire(change: ResourceChange) -> dict[str, Any]:
+    return {
+        'address': change.address,
+        'actions': change.actions,
+        'replacement': change.replacement,
+        'forced_by': change.forced_by,
+        'sensitive_attributes': change.sensitive_attributes,
+        'flags': change.flags,
+    }
 
 
 def find_moves(plan: PlanDocument) -> list[Move]:
@@ -103,24 +107,24 @@ def find_moves(plan: PlanDocument) -> list[Move]:
         Move(
             from_address=item.previous_address,
             to_address=item.address,
-            with_change=item.change.actions != [NO_OP],
+            with_change=classify(item.change.actions) != 'no-op',
         )
         for item in plan.resource_changes
         if item.previous_address not in {None, item.address}
     ]
 
 
-def find_plan_flags(plan: PlanDocument) -> list[Flag]:
-    actions = [classify(item.change.actions) for item in plan.resource_changes]
+def find_plan_flags(plan: PlanDocument, changes: list[ResourceChange]) -> list[Flag]:
+    kinds = [change.kind for change in changes]
     flags: list[Flag] = []
-    if mass_destroy(actions, len(actions)):
-        flags.append(Flag.MASS_DESTROY)
+    if mass_destroy(kinds, len(kinds)):
+        flags.append('mass-destroy')
 
     if plan.resource_drift:
-        flags.append(Flag.DRIFT)
+        flags.append('drift')
 
-    if ActionKind.UNSUPPORTED in actions:
-        flags.append(Flag.UNSUPPORTED_ACTION)
+    if 'unsupported' in kinds:
+        flags.append('unsupported-action')
 
     return flags
 
@@ -131,14 +135,14 @@ def digest_plan(path: Path, plan: PlanDocument) -> dict[str, Any]:
     return {
         'path': str(path),
         'counts': dict(counts),
-        'resource_changes': [asdict(change) for change in changes if change.actions != [NO_OP]],
+        'resource_changes': [to_wire(change) for change in changes if change.kind != 'no-op'],
         'output_changes': [
             {'name': name, 'actions': out.actions} for name, out in plan.output_changes.items()
         ],
         'moves': [asdict(move) for move in find_moves(plan)],
-        'imports': [change.address for change in changes if Flag.IMPORT in change.flags],
+        'imports': [change.address for change in changes if 'import' in change.flags],
         'drifted': [item.address for item in plan.resource_drift],
-        'plan_flags': find_plan_flags(plan),
+        'plan_flags': find_plan_flags(plan, changes),
     }
 
 

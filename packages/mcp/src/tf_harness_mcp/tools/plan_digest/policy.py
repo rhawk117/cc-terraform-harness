@@ -3,21 +3,11 @@
 import re
 from typing import TYPE_CHECKING, Any
 
-from tf_harness_mcp.tools.plan_digest.domain import ActionKind, Flag
-
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-RECOGNIZED_ACTIONS: dict[tuple[str, ...], ActionKind] = {
-    ('no-op',): ActionKind.NOOP,
-    ('create',): ActionKind.CREATE,
-    ('read',): ActionKind.READ,
-    ('update',): ActionKind.UPDATE,
-    ('delete',): ActionKind.DELETE,
-    ('forget',): ActionKind.FORGET,
-    ('delete', 'create'): ActionKind.REPLACE_DELETE_FIRST,
-    ('create', 'delete'): ActionKind.REPLACE_CREATE_FIRST,
-}
+    from tf_harness_mcp.tools.plan_digest.domain import ActionKind, Flag
+
 STATEFUL_TYPE_MARKERS = (
     'db_instance', 'rds_cluster', 'dynamodb_table', 'sql_database_instance', 'cosmosdb',
     'elasticache', 'redis', 'memorystore', 'documentdb', 'neptune', 'spanner', 'bigtable',
@@ -55,12 +45,12 @@ PROTECTION_KEYS = frozenset({
 })
 ENCRYPTION_KEYS = frozenset({'storage_encrypted', 'encrypted', 'encryption_enabled', 'kms_key_id'})
 DESTRUCTIVE_ACTIONS = frozenset({
-    ActionKind.DELETE,
-    ActionKind.REPLACE_DELETE_FIRST,
-    ActionKind.REPLACE_CREATE_FIRST,
+    'delete',
+    'replace-delete-first',
+    'replace-create-first',
 })
-LOSSY_ACTIONS = frozenset({ActionKind.DELETE, ActionKind.REPLACE_DELETE_FIRST})
-QUIET_ACTIONS = frozenset({ActionKind.NOOP, ActionKind.READ, ActionKind.FORGET})
+LOSSY_ACTIONS = frozenset({'delete', 'replace-delete-first'})
+QUIET_ACTIONS = frozenset({'no-op', 'read', 'forget'})
 MASS_DESTROY_ABSOLUTE = 10
 MASS_DESTROY_RATIO = 0.3
 MASS_DESTROY_MINIMUM = 3
@@ -69,7 +59,17 @@ PATH_SEGMENT_SPLIT = re.compile(r'[.\[]')
 
 
 def classify(actions: list[str]) -> ActionKind:
-    return RECOGNIZED_ACTIONS.get(tuple(actions), ActionKind.UNSUPPORTED)
+    recognized: dict[tuple[str, ...], ActionKind] = {
+        ('no-op',): 'no-op',
+        ('create',): 'create',
+        ('read',): 'read',
+        ('update',): 'update',
+        ('delete',): 'delete',
+        ('forget',): 'forget',
+        ('delete', 'create'): 'replace-delete-first',
+        ('create', 'delete'): 'replace-create-first',
+    }
+    return recognized.get(tuple(actions), 'unsupported')
 
 
 def matches_any(resource_type: str, markers: tuple[str, ...]) -> bool:
@@ -81,13 +81,13 @@ def type_flags(resource_type: str, action: ActionKind) -> Iterator[Flag]:
         return
 
     if action in LOSSY_ACTIONS and matches_any(resource_type, STATEFUL_TYPE_MARKERS):
-        yield Flag.DESTROY_STATEFUL
+        yield 'destroy-stateful'
 
     if matches_any(resource_type, IAM_TYPE_MARKERS):
-        yield Flag.IAM_CHANGE
+        yield 'iam-change'
 
     if matches_any(resource_type, SECURITY_RULE_TYPE_MARKERS):
-        yield Flag.SECURITY_RULE_CHANGE
+        yield 'security-rule-change'
 
 
 def walk_values(value: Any, path: str = '') -> Iterator[tuple[str, Any]]:
@@ -123,10 +123,10 @@ def exposure_flags(after: dict[str, Any] | None) -> set[Flag]:
     found: set[Flag] = set()
     for path, value in walk_values(after or {}):
         if isinstance(value, str) and value in OPEN_CIDRS and not is_egress_path(path):
-            found.add(Flag.OPEN_CIDR)
+            found.add('open-cidr')
 
         if is_public_value(leaf_key(path), value):
-            found.add(Flag.PUBLIC_FLAG)
+            found.add('public-flag')
 
     return found
 
@@ -137,10 +137,10 @@ def transition_flags(before: dict[str, Any] | None, after: dict[str, Any] | None
 
     found: set[Flag] = set()
     if any(before.get(key) is True and after.get(key) is False for key in PROTECTION_KEYS):
-        found.add(Flag.DELETION_PROTECTION_OFF)
+        found.add('deletion-protection-off')
 
     if any(before.get(key) and not after.get(key) for key in ENCRYPTION_KEYS):
-        found.add(Flag.ENCRYPTION_OFF)
+        found.add('encryption-off')
 
     return found
 
