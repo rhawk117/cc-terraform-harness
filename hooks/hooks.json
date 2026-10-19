@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "UV_PROJECT_ENVIRONMENT=\"${CLAUDE_PLUGIN_DATA}/hooks-venv\" uv run --project \"${CLAUDE_PLUGIN_ROOT}/packages/hooks\" tf-harness-hooks fmt",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/tf-harness-hooks\" fmt",
             "timeout": 30
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "UV_PROJECT_ENVIRONMENT=\"${CLAUDE_PLUGIN_DATA}/hooks-venv\" uv run --project \"${CLAUDE_PLUGIN_ROOT}/packages/hooks\" tf-harness-hooks read",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/tf-harness-hooks\" read",
             "timeout": 90
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "UV_PROJECT_ENVIRONMENT=\"${CLAUDE_PLUGIN_DATA}/hooks-venv\" uv run --project \"${CLAUDE_PLUGIN_ROOT}/packages/hooks\" tf-harness-hooks session-start",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/tf-harness-hooks\" session-start",
             "timeout": 45
           }
         ]

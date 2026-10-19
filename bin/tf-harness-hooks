@@ -1,0 +1,9 @@
+#!/bin/sh
+if ! command -v uv >/dev/null 2>&1; then
+  echo "tf-harness-hooks: uv is not on PATH, skipping the $1 hook" >&2
+  exit 0
+fi
+
+UV_PROJECT_ENVIRONMENT="$CLAUDE_PLUGIN_DATA/hooks-venv"
+export UV_PROJECT_ENVIRONMENT
+exec uv run --project "$CLAUDE_PLUGIN_ROOT/packages/hooks" tf-harness-hooks "$@"
