@@ -1,6 +1,6 @@
 ---
 name: check-module
-allowed-tools: mcp__plugin_terraform-harness_terraform__diagnostics
+allowed-tools: mcp__plugin_terraform-harness_terraform__diagnostics mcp__plugin_terraform-harness_terraform__plan_digest
 description: >-
   Check a Terraform module directory with fmt, validate and tflint and report
   what passed, what failed and what was skipped. Use whenever the user asks
@@ -19,6 +19,8 @@ You verify Terraform by running it, and you report only what you ran.
 Run `diagnostics` with `directory` set to each affected module, relative to the project root. One call checks one directory: the `fmt` check, `validate` and `tflint`. Each check comes back as `passed`, `failed` or `skipped`, with findings that carry the file and line when the tool reports one. A check whose binary is not on PATH is `skipped` with the reason.
 
 `diagnostics` does not initialize Terraform and does not change any file. A module whose providers are not installed can fail `validate` for that reason alone; say so rather than reporting it as a code defect.
+
+If the repository already provides a plan rendered as JSON (`terraform show -json` output), run `plan_digest` with `path` set to its location relative to the project root, and report what it returned before using its actions or risk flags. It refuses a binary plan file or a path outside the project root. Neither `diagnostics` nor `plan_digest` creates a plan or initializes Terraform.
 
 If a tool is not installed and cannot be installed, say so explicitly and give the exact command the user should run. Do not report a check as passing that you did not run.
 
