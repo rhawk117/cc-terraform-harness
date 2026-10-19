@@ -4,7 +4,13 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 from tf_harness_hooks.domain import HookRequest
-from tf_harness_hooks.read import CHECK_TIMEOUT_SECONDS, CONTEXT_LIMIT, report_file_findings
+from tf_harness_hooks.read import (
+    CHECK_TIMEOUT_SECONDS,
+    CONTEXT_LIMIT,
+    Section,
+    render,
+    report_file_findings,
+)
 from tf_harness_mcp.runner.domain import CommandResult
 from tf_harness_mcp.runner.errors import CommandTimeoutError
 from tf_harness_mcp.tools.diagnostics.tests.scripting import (
@@ -306,7 +312,7 @@ class TestOutputBudget:
         assert lines[0] == 'terraform validate:'
         assert lines[1] == '0: error Unsupported argument 0'
         shown = sum(1 for line in lines[:-1] if line[:1].isdigit())
-        assert lines[-1] == f'{2 * self.finding_count - shown} more findings omitted'
+        assert lines[-1] == f'{2 * self.finding_count - shown + 1} lines omitted'
 
     async def test_header_only_section_dropped_by_a_spent_budget_is_counted(
         self, scenario: ReadScenario
@@ -325,7 +331,19 @@ class TestOutputBudget:
         lines = context.splitlines()
         assert 'tflint --init' not in context
         shown = sum(1 for line in lines[:-1] if line[:1].isdigit())
-        assert lines[-1] == f'{self.finding_count - shown + 1} more findings omitted'
+        assert lines[-1] == f'{self.finding_count - shown + 1} lines omitted'
+
+    def test_header_alone_overflowing_the_budget_is_counted_as_one_omitted_line(self) -> None:
+        header = 'h' * 300
+        section_count = CONTEXT_LIMIT // len(header) + 5
+        sections = [Section(header=header, lines=['1: error x']) for _ in range(section_count)]
+
+        lines = render(sections).splitlines()
+
+        kept_count = len(lines) - 1
+        assert 0 < kept_count < 2 * section_count
+        assert lines[-1] == f'{2 * section_count - kept_count} lines omitted'
+        assert len('\n'.join(lines)) <= CONTEXT_LIMIT
 
     async def test_wire_envelope_carries_the_text(self, scenario: ReadScenario) -> None:
         scenario.script(

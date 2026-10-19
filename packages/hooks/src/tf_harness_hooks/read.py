@@ -115,29 +115,37 @@ async def check_tflint(request: HookRequest, module: Path, file_path: Path) -> l
     return sections
 
 
+@dataclass(slots=True, kw_only=True, frozen=True)
+class ContextBudget:
+    limit: int
+
+    def fit(self, lines: list[str]) -> tuple[list[str], int]:
+        kept: list[str] = []
+        used = 0
+        for line in lines:
+            cost = len(line) + 1
+            if not kept and used + cost > self.limit:
+                return [], len(lines)
+
+            if used + cost <= self.limit:
+                kept.append(line)
+                used += cost
+
+        return kept, len(lines) - len(kept)
+
+
 def render(sections: list[Section]) -> str:
-    budget = CONTEXT_LIMIT - OMITTED_RESERVE
     kept: list[str] = []
     omitted = 0
-    used = 0
     for section in sections:
-        header_cost = len(section.header) + 1
-        if used + header_cost > budget:
-            omitted += len(section.lines) or 1
-            continue
-
-        kept.append(section.header)
-        used += header_cost
-        for line in section.lines:
-            if used + len(line) + 1 > budget:
-                omitted += 1
-                continue
-
-            kept.append(line)
-            used += len(line) + 1
+        spent = sum(len(line) + 1 for line in kept)
+        budget = ContextBudget(limit=CONTEXT_LIMIT - OMITTED_RESERVE - spent)
+        fitted, dropped = budget.fit([section.header, *section.lines])
+        kept.extend(fitted)
+        omitted += dropped
 
     if omitted:
-        kept.append(f'{omitted} more findings omitted')
+        kept.append(f'{omitted} lines omitted')
 
     return '\n'.join(kept)
 
