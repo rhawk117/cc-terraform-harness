@@ -87,24 +87,34 @@ async def check_validate(request: HookRequest, module: Path, file_path: Path) ->
     return Section(header='terraform validate:', lines=list(map(format_finding, findings)))
 
 
-async def check_tflint(request: HookRequest, module: Path, file_path: Path) -> Section | None:
+def failure_section(finding: Finding) -> Section:
+    detail_lines = finding.detail.splitlines()
+    detail = f': {detail_lines[0]}' if detail_lines else ''
+    return Section(header=clip(f'tflint failed: {finding.summary}{detail}'))
+
+
+async def check_tflint(request: HookRequest, module: Path, file_path: Path) -> list[Section]:
     report = await run_check(request, TflintCheck(timeout_seconds=CHECK_TIMEOUT_SECONDS), module)
     if report is None:
-        return timeout_section('tflint')
+        return [timeout_section('tflint')]
 
     if report.status == 'skipped':
-        return None
+        return []
 
     if lacks_plugins(report):
-        return Section(
-            header=clip(f'tflint plugins are missing: run {TFLINT_INIT_HINT} in {module}')
-        )
+        return [
+            Section(header=clip(f'tflint plugins are missing: run {TFLINT_INIT_HINT} in {module}'))
+        ]
+
+    sections: list[Section] = []
+    if failure := next((finding for finding in report.findings if finding.file is None), None):
+        sections.append(failure_section(failure))
 
     findings = [finding for finding in report.findings if targets_file(finding, module, file_path)]
-    if not findings:
-        return None
+    if findings:
+        sections.append(Section(header='tflint:', lines=list(map(format_finding, findings))))
 
-    return Section(header='tflint:', lines=list(map(format_finding, findings)))
+    return sections
 
 
 def render(sections: list[Section]) -> str:
@@ -140,11 +150,9 @@ async def report_file_findings(request: HookRequest) -> HookOutput | None:
         return None
 
     module = request.file_path.parent
-    checked = (
-        await check_validate(request, module, request.file_path),
-        await check_tflint(request, module, request.file_path),
-    )
-    sections = [section for section in checked if section is not None]
+    validate_section = await check_validate(request, module, request.file_path)
+    tflint_sections = await check_tflint(request, module, request.file_path)
+    sections = [*filter(None, [validate_section]), *tflint_sections]
     if not sections:
         return None
 

@@ -108,6 +108,7 @@ class TestFindingSelection:
             'terraform validate:\n'
             '4: error Unsupported argument\n'
             '-: error Missing required provider\n'
+            'tflint failed: Failed to check ruleset\n'
             'tflint:\n'
             '7: warning terraform_unused_declarations: "unused" is declared but not used'
         )
@@ -122,6 +123,7 @@ class TestFindingSelection:
         assert context == (
             'terraform validate:\n'
             '-: error Missing required provider\n'
+            'tflint failed: Failed to check ruleset\n'
             'tflint:\n'
             '3: warning terraform_unused_declarations: "extra" is not set'
         )
@@ -129,7 +131,7 @@ class TestFindingSelection:
     async def test_nothing_kept_gives_no_output(self, scenario: ReadScenario) -> None:
         scenario.script(
             create_validate_json(create_validate_diagnostic('Duplicate', 'other.tf')),
-            create_tflint_json(errors=('Failed to check ruleset',)),
+            create_tflint_json(create_tflint_issue('unused', 'other.tf', 2)),
         )
 
         assert await scenario.read('main.tf') is None
@@ -152,6 +154,50 @@ class TestFindingSelection:
         assert {call.command.cwd for call in calls} == {scenario.project_root}
         assert [call.timeout_seconds for call in calls] == [30.0, 30.0]
         assert CHECK_TIMEOUT_SECONDS == 30
+
+
+class TestTflintFailures:
+    async def test_unparseable_output_gives_one_failed_line_with_the_first_stderr_line(
+        self, scenario: ReadScenario
+    ) -> None:
+        scenario.runner.script(VALIDATE_ARGV, succeed(create_validate_json()))
+        scenario.runner.script(
+            TFLINT_ARGV,
+            CommandResult(returncode=2, stdout='not json', stderr='config broken\nsecond line\n'),
+        )
+
+        context = await scenario.read('main.tf')
+
+        assert context == (
+            'tflint failed: tflint exited with 2 and printed no usable output: config broken'
+        )
+
+    async def test_non_plugin_error_gives_one_failed_line(self, scenario: ReadScenario) -> None:
+        scenario.script(
+            create_validate_json(), create_tflint_json(errors=('Failed to check ruleset',))
+        )
+
+        context = await scenario.read('main.tf')
+
+        assert context == 'tflint failed: Failed to check ruleset'
+
+    async def test_failed_line_precedes_the_read_files_own_findings(
+        self, scenario: ReadScenario
+    ) -> None:
+        scenario.script(
+            create_validate_json(),
+            create_tflint_json(
+                create_tflint_issue('unused', 'main.tf', 7), errors=('Failed to check ruleset',)
+            ),
+        )
+
+        context = await scenario.read('main.tf')
+
+        assert context == (
+            'tflint failed: Failed to check ruleset\n'
+            'tflint:\n'
+            '7: warning terraform_unused_declarations: unused'
+        )
 
 
 class TestInitHints:
