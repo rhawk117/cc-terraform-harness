@@ -57,12 +57,14 @@ git ls-files | grep -E '\.terraform\.lock\.hcl$'
 ```
 
 Call `describe` on the repository root, or on each candidate
-directory; it returns `kind` (`root_module` or `child_module`) with a
-`kind_reason`, the backend with its `resolution`, `required_providers`,
-and `module_calls` with their refs. Note where state lives and whether the backend
-config is in the repo at all; a backend whose `resolution` is
-`unresolved` means the key is supplied elsewhere, and that goes in Not
-verified and caps the verdict.
+directory; it returns `kind` (`module`, `file` or `tfvars`), `variables`,
+`outputs`, `resources`, `data_sources`, `required_providers`, and
+`module_calls` with their refs. It does not say whether a directory is a
+root or a child module, or where state lives: read the `terraform`
+blocks and provider configuration yourself to tell them apart and to
+find the backend. Note where state lives and whether the backend config
+is in the repo at all; a partial backend whose keys are supplied
+elsewhere goes in Not verified and caps the verdict.
 
 For a module directory, `describe` merges `files`, `data_sources`, `modules`,
 `resources`, `variables`, and `outputs` into the top-level response and also
