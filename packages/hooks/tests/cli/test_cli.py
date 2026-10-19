@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
     from tf_harness_hooks.domain import HookOutput, HookRequest
 
-    from tests.conftest import HookHarness
+    from tests.conftest import HookHarness, PermissionDeniedRunner
 
 
 pytestmark = pytest.mark.unit
@@ -71,6 +71,25 @@ class TestHookOutput:
         )
 
         assert (run.exit_code, run.stdout) == (0, '')
+
+
+class TestRunnerOsError:
+    def test_permission_error_exits_zero_with_one_stderr_line(
+        self,
+        hook_harness: HookHarness,
+        project_root: Path,
+        permission_denied_runner: PermissionDeniedRunner,
+    ) -> None:
+        run = hook_harness.run(
+            'read',
+            hook_harness.event(project_root / 'main.tf'),
+            project_dir=str(project_root),
+            runner=permission_denied_runner,
+        )
+
+        assert (run.exit_code, run.stdout) == (0, '')
+        assert len(run.stderr.splitlines()) == 1
+        assert 'Permission denied' in run.stderr
 
 
 class TestInvalidInput:

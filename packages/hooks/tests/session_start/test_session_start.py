@@ -22,6 +22,8 @@ if TYPE_CHECKING:
     from tf_harness_hooks.domain import HookOutput
     from tf_harness_mcp.runner.errors import CommandNotAllowedError
 
+    from tests.conftest import PermissionDeniedRunner
+
 pytestmark = pytest.mark.unit
 
 TERRAFORM_JSON = json.dumps({'terraform_version': '1.15.8', 'platform': 'linux_amd64'})
@@ -134,6 +136,24 @@ class TestProbeFailures:
             'terraform: version check timed out after 10s',
             'tflint: version check timed out after 10s',
             'terraform-ls: version check timed out after 10s',
+        ]
+
+    async def test_permission_error_is_reported_and_keeps_three_lines(
+        self, project_root: Path, permission_denied_runner: PermissionDeniedRunner
+    ) -> None:
+        request = HookRequest(
+            event_name='SessionStart',
+            project_root=project_root,
+            runner=permission_denied_runner,
+        )
+
+        output = await report_tool_versions(request)
+
+        assert output is not None
+        assert output.additional_context.splitlines() == [
+            'terraform: could not run (Permission denied)',
+            'tflint: could not run (Permission denied)',
+            'terraform-ls: could not run (Permission denied)',
         ]
 
     async def test_non_zero_exit_names_the_binary_and_the_code(

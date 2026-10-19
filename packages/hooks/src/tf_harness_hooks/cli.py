@@ -28,7 +28,9 @@ from tf_harness_hooks.session_start import report_tool_versions
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-    from tf_harness_hooks.domain import Subcommand
+    from tf_harness_mcp.runner.domain import CommandRunner
+
+    from tf_harness_hooks.domain import HookOutput, Subcommand
 
 PROJECT_DIR_VARIABLE = 'CLAUDE_PROJECT_DIR'
 INVALID_EVENT = 1
@@ -74,33 +76,52 @@ def gate_file(session: HookSession, event: HookEvent, project_root: Path) -> int
     return None
 
 
+def parse_event(session: HookSession) -> HookEvent | int:
+    try:
+        return HookEvent.model_validate_json(session.io.stdin.read())
+    except ValidationError as err:
+        session.io.stderr.write(f'invalid hook event: {err}\n')
+        return INVALID_EVENT
+
+
+def build_request(event: HookEvent, project_root: Path, runner: CommandRunner) -> HookRequest:
+    file_path = (
+        None if event.file_path is None else resolve_project_path(project_root, event.file_path)
+    )
+    return HookRequest(
+        event_name=event.hook_event_name,
+        project_root=project_root,
+        runner=runner,
+        file_path=file_path,
+    )
+
+
+def emit(session: HookSession, output: HookOutput | None) -> None:
+    if output is not None:
+        session.io.stdout.write(json.dumps(output.to_wire()))
+
+
 def run_hook(session: HookSession) -> int:
     project_dir = session.environ.get(PROJECT_DIR_VARIABLE)
     if project_dir is None or project_dir == '':
         return 0
 
-    try:
-        event = HookEvent.model_validate_json(session.io.stdin.read())
-    except ValidationError as err:
-        session.io.stderr.write(f'invalid hook event: {err}\n')
-        return INVALID_EVENT
+    event = parse_event(session)
+    if isinstance(event, int):
+        return event
 
     project_root = Path(project_dir)
     if (exit_code := gate_file(session, event, project_root)) is not None:
         return exit_code
 
-    request = HookRequest(
-        event_name=event.hook_event_name,
-        project_root=project_root,
-        runner=session.runner,
-        file_path=None
-        if event.file_path is None
-        else resolve_project_path(project_root, event.file_path),
-    )
-    output = anyio.run(session.spec.handler, request)
-    if output is not None:
-        session.io.stdout.write(json.dumps(output.to_wire()))
+    request = build_request(event, project_root, session.runner)
+    try:
+        output = anyio.run(session.spec.handler, request)
+    except OSError as err:
+        session.io.stderr.write(f'tf-harness-hooks: {err}\n')
+        return 0
 
+    emit(session, output)
     return 0
 
 

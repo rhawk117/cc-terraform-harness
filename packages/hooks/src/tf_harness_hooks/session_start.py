@@ -69,6 +69,8 @@ async def describe_tool(request: HookRequest, probe: ToolProbe) -> str:
         return f'{probe.name}: not found; {probe.degrades}'
     except CommandTimeoutError:
         return f'{probe.name}: version check timed out after {PROBE_TIMEOUT_SECONDS:g}s'
+    except OSError as err:
+        return f'{probe.name}: could not run ({err.strerror or type(err).__name__})'
 
     if result.returncode != 0:
         return f'{probe.name}: version check exited with code {result.returncode}'
