@@ -62,6 +62,7 @@ class TestDiagnosticsWithFindings:
 
         assert fmt['status'] == 'failed'
         assert [finding['file'] for finding in fmt['findings']] == ['main.tf']
+        assert [finding['scope'] for finding in fmt['findings']] == ['file']
 
     async def test_validate_findings_carry_file_and_line(self, report: Report) -> None:
         finding = report['checks']['validate']['findings'][0]
@@ -69,6 +70,7 @@ class TestDiagnosticsWithFindings:
         assert report['checks']['validate']['status'] == 'failed'
         assert (finding['file'], finding['line']) == ('main.tf', 3)
         assert finding['summary'] == 'Reference to undeclared input variable'
+        assert finding['scope'] == 'file'
 
     async def test_tflint_findings_carry_file_and_line(self, report: Report) -> None:
         finding = report['checks']['tflint']['findings'][0]
@@ -149,7 +151,30 @@ class TestDiagnosticsOnUninitializedDirectory:
         assert validate['status'] == 'failed'
         assert validate['findings'][0]['summary'] == 'Missing required provider'
         assert validate['findings'][0]['file'] is None
+        assert validate['findings'][0]['scope'] == 'module'
         assert all('init' not in call.command.argv for call in scripted.runner.calls)
+
+
+@pytest.mark.unit
+class TestDiagnosticsOnTflintError:
+    @pytest.fixture
+    def scripted(self, recording_runner: RecordingCommandRunner, module: Path) -> Scripted:
+        recording_runner.script(FMT_ARGV, succeed())
+        recording_runner.script(VALIDATE_ARGV, succeed(create_validate_json()))
+        tflint_output = json.dumps({
+            'issues': [],
+            'errors': [{'message': 'Failed to check ruleset', 'severity': 'error'}],
+        })
+        recording_runner.script(TFLINT_ARGV, fail(1, tflint_output))
+        return Scripted(runner=recording_runner, module=module)
+
+    async def test_tflint_error_is_a_tool_scope_finding(
+        self, client: Client, scripted: Scripted
+    ) -> None:
+        report = read_report(await call_diagnostics(client, scripted.module))
+
+        findings = report['checks']['tflint']['findings']
+        assert [(item['scope'], item['file']) for item in findings] == [('tool', None)]
 
 
 @pytest.mark.unit

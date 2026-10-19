@@ -110,5 +110,6 @@ class TestDiagnosticsOnUnusableCheckOutput:
 
         assert check['status'] == 'failed'
         assert [
-            (item['severity'], item['summary'], item['detail']) for item in check['findings']
-        ] == [('error', branch.summary, branch.detail)]
+            (item['scope'], item['severity'], item['summary'], item['detail'])
+            for item in check['findings']
+        ] == [('tool', 'error', branch.summary, branch.detail)]

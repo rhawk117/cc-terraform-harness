@@ -48,7 +48,8 @@ def targets_file(finding: Finding, module: Path, file_path: Path) -> bool:
 
 def lacks_plugins(report: CheckReport) -> bool:
     return any(
-        finding.file is None and TFLINT_INIT_HINT in finding.summary for finding in report.findings
+        finding.scope == 'tool' and TFLINT_INIT_HINT in finding.summary
+        for finding in report.findings
     )
 
 
@@ -79,7 +80,7 @@ async def check_validate(request: HookRequest, module: Path, file_path: Path) ->
     findings = [
         finding
         for finding in report.findings
-        if finding.file is None or targets_file(finding, module, file_path)
+        if finding.scope != 'file' or targets_file(finding, module, file_path)
     ]
     if not findings:
         return None
@@ -107,7 +108,7 @@ async def check_tflint(request: HookRequest, module: Path, file_path: Path) -> l
         ]
 
     sections: list[Section] = []
-    if failure := next((finding for finding in report.findings if finding.file is None), None):
+    if failure := next((finding for finding in report.findings if finding.scope == 'tool'), None):
         sections.append(failure_section(failure))
 
     findings = [finding for finding in report.findings if targets_file(finding, module, file_path)]

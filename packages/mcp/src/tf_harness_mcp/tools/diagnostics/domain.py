@@ -7,10 +7,12 @@ if TYPE_CHECKING:
     from tf_harness_mcp.runner.domain import CommandResult
 
 type CheckStatus = Literal['passed', 'failed', 'skipped']
+type FindingScope = Literal['file', 'module', 'tool']
 
 
 @dataclass(slots=True, kw_only=True, frozen=True)
 class Finding:
+    scope: FindingScope
     severity: str
     summary: str
     detail: str = ''
