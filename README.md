@@ -16,6 +16,7 @@ A deterministic Claude Code plugin acting as a harness for terraform and IAC rep
 - `look-up-schema`: looks up the attributes and nested blocks of a provider, resource or data source.
 - `review-module`: reviews and grades Terraform code, a repository or a branch.
 - `trace-change-impact`: traces which blocks, variables, outputs and root modules a change touches.
+- `writing-terraform`: the authoring procedure Claude follows when it writes or edits Terraform, with paired good and bad HCL keyed to the review-module rubric. It loads on its own for `.tf`, `.tfvars` and `.tftest.hcl` files.
 
 ## Hooks
 
