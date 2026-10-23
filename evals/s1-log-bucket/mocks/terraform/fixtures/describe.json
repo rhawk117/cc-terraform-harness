@@ -1,0 +1,86 @@
+{
+  "path": "modules/storage",
+  "kind": "module",
+  "variables": [
+    {
+      "name": "environment",
+      "type": "string",
+      "has_default": false,
+      "description": "Deployment environment, used in resource names.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/storage/variables.tf",
+        "start_line": 1,
+        "end_line": 9
+      }
+    },
+    {
+      "name": "name_prefix",
+      "type": "string",
+      "has_default": false,
+      "description": "Prefix for every bucket name, usually the application name.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/storage/variables.tf",
+        "start_line": 11,
+        "end_line": 14
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "artifacts_bucket_name",
+      "description": "Name of the build artifacts bucket.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/storage/outputs.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    }
+  ],
+  "resources": [
+    {
+      "type": "aws_s3_bucket",
+      "name": "artifacts",
+      "location": {
+        "file": "modules/storage/main.tf",
+        "start_line": 1,
+        "end_line": 3
+      }
+    },
+    {
+      "type": "aws_s3_bucket_versioning",
+      "name": "artifacts",
+      "location": {
+        "file": "modules/storage/main.tf",
+        "start_line": 5,
+        "end_line": 11
+      }
+    },
+    {
+      "type": "aws_s3_bucket_server_side_encryption_configuration",
+      "name": "artifacts",
+      "location": {
+        "file": "modules/storage/main.tf",
+        "start_line": 13,
+        "end_line": 21
+      }
+    }
+  ],
+  "data_sources": [],
+  "module_calls": [],
+  "required_providers": [
+    {
+      "local_name": "aws",
+      "source": "hashicorp/aws",
+      "version": "~> 6.0",
+      "location": {
+        "file": "modules/storage/versions.tf",
+        "start_line": 5,
+        "end_line": 8
+      }
+    }
+  ],
+  "problems": []
+}

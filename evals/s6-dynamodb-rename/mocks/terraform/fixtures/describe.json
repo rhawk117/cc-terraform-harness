@@ -1,0 +1,66 @@
+{
+  "path": "modules/orders",
+  "kind": "module",
+  "variables": [
+    {
+      "name": "table_name",
+      "type": "string",
+      "has_default": true,
+      "description": "Name of the orders DynamoDB table.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/orders/variables.tf",
+        "start_line": 1,
+        "end_line": 5
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "table_arn",
+      "description": "ARN of the orders table.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/orders/outputs.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    },
+    {
+      "name": "table_name",
+      "description": "Name of the orders table.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/orders/outputs.tf",
+        "start_line": 6,
+        "end_line": 9
+      }
+    }
+  ],
+  "resources": [
+    {
+      "type": "aws_dynamodb_table",
+      "name": "orders",
+      "location": {
+        "file": "modules/orders/main.tf",
+        "start_line": 1,
+        "end_line": 18
+      }
+    }
+  ],
+  "data_sources": [],
+  "module_calls": [],
+  "required_providers": [
+    {
+      "local_name": "aws",
+      "source": "hashicorp/aws",
+      "version": "~> 6.0",
+      "location": {
+        "file": "modules/orders/versions.tf",
+        "start_line": 5,
+        "end_line": 8
+      }
+    }
+  ],
+  "problems": []
+}

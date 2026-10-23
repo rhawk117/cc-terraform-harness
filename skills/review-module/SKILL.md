@@ -64,7 +64,9 @@ root or a child module, or where state lives: read the `terraform`
 blocks and provider configuration yourself to tell them apart and to
 find the backend. Note where state lives and whether the backend config
 is in the repo at all; a partial backend whose keys are supplied
-elsewhere goes in Not verified and caps the verdict.
+elsewhere goes in Not verified and caps the verdict. Check the backend
+key, workspace, account, and region against what the request targets
+before reading further (BR11).
 
 For a module directory or a `.tf` file, `describe` returns `path`, `kind`,
 `variables`, `outputs`, `resources`, `data_sources`, `module_calls`,
@@ -92,6 +94,14 @@ branch. Three dots so you review only the branch's own work. The last
 command is for SE5: a secret added and removed on the branch is still in
 history after merge.
 
+Read two parts of the diff before the rest: every change to
+`.terraform.lock.hcl`, `required_providers`, `required_version`, or a
+module `source` or `version` (VE8), and every line that removes or
+weakens `prevent_destroy`, `deletion_protection`, `skip_final_snapshot`,
+or `force_destroy` (BR10). When the branch fixes an earlier finding or a
+scanner result, run the false-negative checklist in rubric section 10 and
+review the whole module, not only the rule that was targeted.
+
 Size triage. Under roughly 40 `.tf` files: read everything. Larger: read
 every root, every module that a root calls, and a representative spread of
 the rest; list skimmed files in Not verified. Never silently sample.
@@ -116,11 +126,15 @@ Read code in this order:
    locked, what is pinned.
 2. Every `moved`, `removed`, and `import` block. This is where destroys hide.
 3. Every stateful resource (databases, buckets, disks, keys, secrets):
-   protection, indexing mode, immutable arguments touched.
-4. Every `variable` and `output` of every module a root calls: the
+   protection, indexing mode, immutable arguments touched, including
+   through a variable default or tfvars value (RA5).
+4. Every IAM policy and every network rule: wildcards and service-wide
+   actions (SE6), missing hardening and open CIDRs (SE7).
+5. Every `variable` and `output` of every module a root calls: the
    contract. `describe` on the module directory lists both.
-5. The remaining files for naming, hardcoding, conditional logic, and
-   `depends_on` that a reference would replace.
+6. The remaining files for naming, hardcoding, literals and defaults that
+   trace to nothing (IN9), conditional logic, and `depends_on` that a
+   reference would replace.
 
 While reading, keep a ledger: rule ID, `file:line`, evidence line, the
 plan line it would cause. Run each candidate through the false-positive
@@ -137,7 +151,10 @@ routine edit is most likely to destroy or replace something, and why.
 
 If the user hands you a plan rendered with `terraform show -json`, call
 `plan_digest` on it and reconcile your forecast against `resource_changes`,
-`moves`, `imports`, and `plan_flags` before grading.
+`moves`, `imports`, and `plan_flags` before grading. Check every
+replacement's `forced_by` against the stateful types (RA5), every move's
+identifying attributes before and after (RA7), and the resolved IAM
+documents rather than the HCL that renders them (SE6).
 
 If `terraform` is installed and the user permits, `terraform init -backend=false && terraform validate` in each root is cheap and catches
 syntax and type errors. Do not run `terraform plan` against a real backend
@@ -145,7 +162,11 @@ unless the user explicitly asks; a plan can require credentials and can
 lock state. Never run `apply`.
 
 Run `diagnostics` on each reviewed module and record its `fmt`, `validate`,
-and `tflint` checks. `diagnostics` does not initialize Terraform. When an
+and `tflint` checks. A `validate` failure is a finding under a
+`[validate]` rule: an unexpected argument or block, or an unsupported
+resource type, is VE7; an undeclared resource or module is DE5, and an
+undeclared variable IN8; a missing required argument is IN10; a duplicate
+provider configuration is ST7. `diagnostics` does not initialize Terraform. When an
 existing plan rendered as JSON is available, use `plan_digest` to read its
 actions, moves, imports, and risk flags.
 
@@ -182,6 +203,10 @@ other people's rigor is a self-inflicted F.
   epigraph line.
 - Do not run `terraform plan` or `apply` without explicit permission, and
   never `apply` at all.
+- Claims about provider or cloud behavior (which argument forces a
+  replacement, what an attribute exposes, when `user_data` runs) come
+  from the schema, the provider documentation, or the plan, and the
+  finding says which. Memory is not a source.
 
 ## Anti-patterns
 
@@ -194,3 +219,6 @@ other people's rigor is a self-inflicted F.
 - Rewarding DRY for its own sake. Three readable roots beat one unreadable
   module. See LO8.
 - Reporting only problems. Clean categories get their evidence line.
+- Taking idiomatic style as evidence. Generated Terraform is uniformly
+  clean whether it is right or wrong; schema, plan, diff, and permissions
+  decide. See rubric section 10.

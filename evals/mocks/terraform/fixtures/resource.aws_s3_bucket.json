@@ -1,0 +1,312 @@
+{
+  "type": "aws_s3_bucket",
+  "kind": "resource",
+  "block": "",
+  "provider": "registry.terraform.io/hashicorp/aws",
+  "version": "6.69.1",
+  "constraint": "~> 6.0",
+  "attributes": [
+    {
+      "name": "acceleration_status",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": true,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "acl",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": true,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "arn",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "bucket",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "bucket_domain_name",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "bucket_namespace",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "bucket_prefix",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "bucket_region",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "bucket_regional_domain_name",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "force_destroy",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "hosted_zone_id",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "object_lock_enabled",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "policy",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": true,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "region",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Region where this resource will be [managed](https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints). Defaults to the Region set in the [provider configuration](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#aws-configuration-reference).",
+      "nested": null
+    },
+    {
+      "name": "request_payer",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": true,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "tags",
+      "type": "map(string)",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "tags_all",
+      "type": "map(string)",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "website_domain",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": true,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "website_endpoint",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": true,
+      "description": null,
+      "nested": null
+    }
+  ],
+  "blocks": [
+    {
+      "name": "cors_rule",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 5,
+      "block_count": 0
+    },
+    {
+      "name": "grant",
+      "nesting_mode": "set",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 4,
+      "block_count": 0
+    },
+    {
+      "name": "lifecycle_rule",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 5,
+      "block_count": 4
+    },
+    {
+      "name": "logging",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 2,
+      "block_count": 0
+    },
+    {
+      "name": "object_lock_configuration",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 1,
+      "block_count": 1
+    },
+    {
+      "name": "replication_configuration",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 1,
+      "block_count": 1
+    },
+    {
+      "name": "server_side_encryption_configuration",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 0,
+      "block_count": 1
+    },
+    {
+      "name": "timeouts",
+      "nesting_mode": "single",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 4,
+      "block_count": 0
+    },
+    {
+      "name": "versioning",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 2,
+      "block_count": 0
+    },
+    {
+      "name": "website",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 4,
+      "block_count": 0
+    }
+  ]
+}

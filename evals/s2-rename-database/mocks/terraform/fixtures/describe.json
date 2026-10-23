@@ -1,0 +1,144 @@
+{
+  "path": "modules/db",
+  "kind": "module",
+  "variables": [
+    {
+      "name": "environment",
+      "type": "string",
+      "has_default": false,
+      "description": "Deployment environment, used in resource names.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/db/variables.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    },
+    {
+      "name": "instance_class",
+      "type": "string",
+      "has_default": false,
+      "description": "RDS instance class for the billing database.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/db/variables.tf",
+        "start_line": 6,
+        "end_line": 9
+      }
+    },
+    {
+      "name": "allocated_storage",
+      "type": "number",
+      "has_default": false,
+      "description": "Allocated storage in GiB.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/db/variables.tf",
+        "start_line": 11,
+        "end_line": 14
+      }
+    },
+    {
+      "name": "subnet_ids",
+      "type": "list(string)",
+      "has_default": false,
+      "description": "Private subnets for the database subnet group.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/db/variables.tf",
+        "start_line": 16,
+        "end_line": 19
+      }
+    },
+    {
+      "name": "vpc_security_group_ids",
+      "type": "list(string)",
+      "has_default": false,
+      "description": "Security groups attached to the database.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/db/variables.tf",
+        "start_line": 21,
+        "end_line": 24
+      }
+    },
+    {
+      "name": "alarm_topic_arn",
+      "type": "string",
+      "has_default": false,
+      "description": "SNS topic that receives database alarms.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/db/variables.tf",
+        "start_line": 26,
+        "end_line": 29
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "endpoint",
+      "description": "Connection endpoint of the billing database.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/db/outputs.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    },
+    {
+      "name": "master_user_secret_arn",
+      "description": "ARN of the Secrets Manager secret holding the master password.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/db/outputs.tf",
+        "start_line": 6,
+        "end_line": 9
+      }
+    }
+  ],
+  "resources": [
+    {
+      "type": "aws_cloudwatch_metric_alarm",
+      "name": "db_cpu",
+      "location": {
+        "file": "modules/db/alarms.tf",
+        "start_line": 1,
+        "end_line": 15
+      }
+    },
+    {
+      "type": "aws_db_subnet_group",
+      "name": "main",
+      "location": {
+        "file": "modules/db/main.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    },
+    {
+      "type": "aws_db_instance",
+      "name": "main",
+      "location": {
+        "file": "modules/db/main.tf",
+        "start_line": 6,
+        "end_line": 27
+      }
+    }
+  ],
+  "data_sources": [],
+  "module_calls": [],
+  "required_providers": [
+    {
+      "local_name": "aws",
+      "source": "hashicorp/aws",
+      "version": "~> 6.0",
+      "location": {
+        "file": "modules/db/versions.tf",
+        "start_line": 5,
+        "end_line": 8
+      }
+    }
+  ],
+  "problems": []
+}

@@ -1,0 +1,382 @@
+{
+  "type": "aws",
+  "kind": "provider",
+  "block": "",
+  "provider": "registry.terraform.io/hashicorp/aws",
+  "version": "6.69.1",
+  "constraint": "~> 6.0",
+  "attributes": [
+    {
+      "name": "access_key",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "The access key for API operations. You can retrieve this\nfrom the 'Security & Credentials' section of the AWS console.",
+      "nested": null
+    },
+    {
+      "name": "allowed_account_ids",
+      "type": "set(string)",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "custom_ca_bundle",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "File containing custom root and intermediate certificates. Can also be configured using the `AWS_CA_BUNDLE` environment variable. (Setting `ca_bundle` in the shared config file is not supported.)",
+      "nested": null
+    },
+    {
+      "name": "ec2_metadata_service_endpoint",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Address of the EC2 metadata service endpoint to use. Can also be configured using the `AWS_EC2_METADATA_SERVICE_ENDPOINT` environment variable.",
+      "nested": null
+    },
+    {
+      "name": "ec2_metadata_service_endpoint_mode",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Protocol to use with EC2 metadata service endpoint.Valid values are `IPv4` and `IPv6`. Can also be configured using the `AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE` environment variable.",
+      "nested": null
+    },
+    {
+      "name": "forbidden_account_ids",
+      "type": "set(string)",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "http_proxy",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "URL of a proxy to use for HTTP requests when accessing the AWS API. Can also be set using the `HTTP_PROXY` or `http_proxy` environment variables.",
+      "nested": null
+    },
+    {
+      "name": "https_proxy",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "URL of a proxy to use for HTTPS requests when accessing the AWS API. Can also be set using the `HTTPS_PROXY` or `https_proxy` environment variables.",
+      "nested": null
+    },
+    {
+      "name": "insecure",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted, default value is `false`",
+      "nested": null
+    },
+    {
+      "name": "max_retries",
+      "type": "number",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "The maximum number of times an AWS API request is\nbeing executed. If the API request still fails, an error is\nthrown.",
+      "nested": null
+    },
+    {
+      "name": "no_proxy",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Comma-separated list of hosts that should not use HTTP or HTTPS proxies. Can also be set using the `NO_PROXY` or `no_proxy` environment variables.",
+      "nested": null
+    },
+    {
+      "name": "profile",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "The profile for API operations. If not set, the default profile\ncreated with `aws configure` will be used.",
+      "nested": null
+    },
+    {
+      "name": "region",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "The region where AWS operations will take place. Examples\nare us-east-1, us-west-2, etc.",
+      "nested": null
+    },
+    {
+      "name": "retry_mode",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Specifies how retries are attempted. Valid values are `standard` and `adaptive`. Can also be configured using the `AWS_RETRY_MODE` environment variable.",
+      "nested": null
+    },
+    {
+      "name": "s3_us_east_1_regional_endpoint",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Specifies whether S3 API calls in the `us-east-1` region use the legacy global endpoint or a regional endpoint. Valid values are `legacy` or `regional`. Can also be configured using the `AWS_S3_US_EAST_1_REGIONAL_ENDPOINT` environment variable or the `s3_us_east_1_regional_endpoint` shared config file parameter",
+      "nested": null
+    },
+    {
+      "name": "s3_use_path_style",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Set this to true to enable the request to use path-style addressing,\ni.e., https://s3.amazonaws.com/BUCKET/KEY. By default, the S3 client will\nuse virtual hosted bucket addressing when possible\n(https://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.",
+      "nested": null
+    },
+    {
+      "name": "secret_key",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "The secret key for API operations. You can retrieve this\nfrom the 'Security & Credentials' section of the AWS console.",
+      "nested": null
+    },
+    {
+      "name": "shared_config_files",
+      "type": "list(string)",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "List of paths to shared config files. If not set, defaults to [~/.aws/config].",
+      "nested": null
+    },
+    {
+      "name": "shared_credentials_files",
+      "type": "list(string)",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "List of paths to shared credentials files. If not set, defaults to [~/.aws/credentials].",
+      "nested": null
+    },
+    {
+      "name": "skip_credentials_validation",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Skip the credentials validation via STS API. Used for AWS API implementations that do not have STS available/implemented.",
+      "nested": null
+    },
+    {
+      "name": "skip_metadata_api_check",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Skip the AWS Metadata API check. Used for AWS API implementations that do not have a metadata api endpoint.",
+      "nested": null
+    },
+    {
+      "name": "skip_region_validation",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Skip static validation of region name. Used by users of alternative AWS-like APIs or users w/ access to regions that are not public (yet).",
+      "nested": null
+    },
+    {
+      "name": "skip_requesting_account_id",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Skip requesting the account ID. Used for AWS API implementations that do not have IAM/STS API and/or metadata API.",
+      "nested": null
+    },
+    {
+      "name": "sts_region",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "The region where AWS STS operations will take place. Examples\nare us-east-1 and us-west-2.",
+      "nested": null
+    },
+    {
+      "name": "tag_policy_compliance",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "The severity with which to enforce organizational tagging policies on resources managed by this provider instance. At this time this only includes compliance with required tag keys by resource type. Valid values are \"error\", \"warning\", and \"disabled\". When unset or \"disabled\", tag policy compliance will not be enforced by the provider. Can also be configured with the TF_AWS_TAG_POLICY_COMPLIANCE environment variable.",
+      "nested": null
+    },
+    {
+      "name": "token",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "session token. A session token is only required if you are\nusing temporary security credentials.",
+      "nested": null
+    },
+    {
+      "name": "token_bucket_rate_limiter_capacity",
+      "type": "number",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "The capacity of the AWS SDK's token bucket rate limiter.",
+      "nested": null
+    },
+    {
+      "name": "use_dualstack_endpoint",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Resolve an endpoint with DualStack capability",
+      "nested": null
+    },
+    {
+      "name": "use_fips_endpoint",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Resolve an endpoint with FIPS capability",
+      "nested": null
+    },
+    {
+      "name": "user_agent",
+      "type": "list(string)",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Product details to append to the User-Agent string sent in all AWS API calls.",
+      "nested": null
+    }
+  ],
+  "blocks": [
+    {
+      "name": "assume_role",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 9,
+      "block_count": 0
+    },
+    {
+      "name": "assume_role_with_web_identity",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 7,
+      "block_count": 0
+    },
+    {
+      "name": "default_tags",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 1,
+      "block_count": 0
+    },
+    {
+      "name": "endpoints",
+      "nesting_mode": "set",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 326,
+      "block_count": 0
+    },
+    {
+      "name": "ignore_tags",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 2,
+      "block_count": 0
+    }
+  ]
+}

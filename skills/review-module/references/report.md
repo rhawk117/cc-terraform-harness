@@ -14,20 +14,32 @@ a line violates.
   stateful resource without `moved` (RA3/BR5 on a database, bucket with
   data, KMS key); a real secret committed in code or history (SE1/SE5);
   state on a local backend for a root that manages stateful resources
-  (BR1); `ignore_changes = all` on a security control (BR3).
+  (BR1); `ignore_changes = all` on a security control (BR3); an
+  immutable argument changed on a stateful resource, including through a
+  variable default (RA5); a `moved` block that points a stateful address
+  at the wrong object (RA7).
 - **High**: apply ships unacceptable risk or removes the net that catches
   the next mistake. `count` over a collection of stateful resources
   (RA1); unpinned providers or modules in a root (VE2/VE4/VE5); secret
   in state where write-only exists (SE4); unprotected stateful resource
   (BR2); workspaces as environment isolation (BR6); string-literal
-  dependency on a stateful parent (DE1).
+  dependency on a stateful parent (DE1); wildcard IAM (SE6); missing
+  hardening or public exposure (SE7); a weakened safety setting (BR10);
+  dependency drift (VE8); the wrong execution context (BR11); a change
+  that does not do what was asked (LO10); an invented value (IN9); a
+  `moved` block that points a stateless address at the wrong object
+  (RA7).
 - **Medium**: costs real time later. Copy-pasted environments (ST1);
   nested ternaries (LO1); untyped or `any` inputs on a shared module
   (IN1/IN2); `depends_on` where a reference would do (DE2); pass-through
   wrapper modules (ST2); missing validation on an enumerated input (IN6);
-  monolithic root (BR4).
+  monolithic root (BR4); an argument or type not in the locked schema
+  (VE7); a dangling reference (DE5); a required input with no value
+  (IN10); a provider configured in a child module (ST7); CI path or apply
+  assumptions (ST8); an out-of-support managed-service version (VE6).
 - **Low**: polish. Missing descriptions (IN3/IN4); constraint shape (VE3);
-  layout conventions (ST4); naming (LO9); long files (LO5).
+  layout conventions (ST4); naming and tags (LO9); long files (LO5);
+  hand-rolled resources beside a maintained module (ST9).
 
 Inflation guard: Critical requires naming the plan line (`# ... must be replaced`, `# ... will be destroyed`) or the exposure path. If you cannot
 write that sentence, it is High at most. Deflation guard: a missing

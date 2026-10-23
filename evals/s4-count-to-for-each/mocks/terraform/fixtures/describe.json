@@ -1,0 +1,80 @@
+{
+  "path": "modules/workers",
+  "kind": "module",
+  "variables": [
+    {
+      "name": "ami_id",
+      "type": "string",
+      "has_default": false,
+      "description": "AMI for the worker instances.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/workers/variables.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    },
+    {
+      "name": "instance_type",
+      "type": "string",
+      "has_default": false,
+      "description": "Instance type for the worker instances.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/workers/variables.tf",
+        "start_line": 6,
+        "end_line": 9
+      }
+    },
+    {
+      "name": "subnet_id",
+      "type": "string",
+      "has_default": false,
+      "description": "Subnet the workers run in.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/workers/variables.tf",
+        "start_line": 11,
+        "end_line": 14
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "worker_ids",
+      "description": "IDs of the worker instances.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/workers/outputs.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    }
+  ],
+  "resources": [
+    {
+      "type": "aws_instance",
+      "name": "worker",
+      "location": {
+        "file": "modules/workers/main.tf",
+        "start_line": 1,
+        "end_line": 11
+      }
+    }
+  ],
+  "data_sources": [],
+  "module_calls": [],
+  "required_providers": [
+    {
+      "local_name": "aws",
+      "source": "hashicorp/aws",
+      "version": "~> 6.0",
+      "location": {
+        "file": "modules/workers/versions.tf",
+        "start_line": 5,
+        "end_line": 8
+      }
+    }
+  ],
+  "problems": []
+}

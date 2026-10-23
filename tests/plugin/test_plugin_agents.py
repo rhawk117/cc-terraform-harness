@@ -21,6 +21,7 @@ SKILLS = frozenset({
     'review-module',
     'look-up-schema',
     'trace-change-impact',
+    'writing-terraform',
 })
 AGENT_MODELS = {
     'terraform-author': 'sonnet',
@@ -29,7 +30,7 @@ AGENT_MODELS = {
     'terraform-edit-reviewer': 'haiku',
 }
 AGENT_SKILLS = {
-    'terraform-author': ['review-module'],
+    'terraform-author': ['writing-terraform'],
     'terraform-researcher': [],
     'terraform-advisor': ['review-module', 'explain-plan'],
     'terraform-edit-reviewer': ['review-module'],

@@ -14,6 +14,7 @@ SKILL_TOOLS = {
     'review-module': 'describe',
     'look-up-schema': 'provider_schema',
     'trace-change-impact': 'change_impact',
+    'writing-terraform': 'provider_schema',
 }
 
 
@@ -24,7 +25,7 @@ def allowed_tools(frontmatter: Mapping[str, Any]) -> list[str]:
 
 @pytest.mark.unit
 class TestPluginSkills:
-    def test_plugin_defines_the_five_terraform_skills(self, claude_plugin: PluginInventory) -> None:
+    def test_plugin_defines_the_six_terraform_skills(self, claude_plugin: PluginInventory) -> None:
         assert claude_plugin.skills.defined_skill_names() == set(SKILL_TOOLS)
 
     @pytest.mark.parametrize(('skill', 'tool'), SKILL_TOOLS.items())
