@@ -97,31 +97,11 @@ Work through the approved table one row at a time. For each row:
 
 ## Phase 6: Verify
 
-You are not done when the files are written. Run what you can and show the output:
+You are not done when the files are written. Run the check-module skill on each affected module and carry its per-check results, skipped checks included, into the Phase 7 report.
 
-Run `diagnostics` on each affected module and record its `fmt`, `validate`, and
-`tflint` results. If the repository already provides a plan artifact, run
-`plan_digest` with `path` set to its JSON plan inside the project root and report its status before
-using its actions or risk flags. Neither tool creates a plan or initializes
-Terraform.
-
-```bash
-pre-commit run --all-files
-terraform fmt -check -recursive
-terraform init -backend=false && terraform validate
-tflint --init && tflint --recursive
-trivy config --exit-code 0 .
-conftest verify --policy policy
-```
-
-then reread the configuration files and compare them with the preservation
-manifest from Phase 1.
-
-The commands above touch no backend, state, or cloud account, but they are not all read-only against the repository: `terraform init` installs providers and modules under `.terraform/` and may write `.terraform.lock.hcl`, and pre-commit hooks can rewrite files. Say which files changed. `conftest verify` runs the policy's own Rego tests; `conftest test` against a plan is a CI concern and is not run here unless the user hands you a `plan.json` they already produced.
+Then reread the configuration files and compare them with the preservation manifest from Phase 1.
 
 For CI files you cannot execute, at minimum parse them (`python3 -c 'import yaml,sys; yaml.safe_load(open(sys.argv[1]))' <file>` if PyYAML is present, otherwise a careful read) and confirm every step you added has a `name:` and every step that existed before still exists with its original name and content.
-
-If a tool is not installed and cannot be installed, say so explicitly and list the exact command the user should run. Do not report a check as passing that you did not run.
 
 ## Phase 7: Report
 
