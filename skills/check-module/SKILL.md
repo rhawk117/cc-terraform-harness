@@ -50,12 +50,9 @@ conftest verify --policy policy
 
 These touch no backend, state or cloud account, but they are not all read-only against the repository: `terraform init` installs providers and modules under `.terraform/` and may write `.terraform.lock.hcl`, and pre-commit hooks can rewrite files. Say which files changed. `conftest verify` runs the policy's own Rego tests; `conftest test` against a plan is a CI concern and is not run here unless the user hands you a `plan.json` they already produced. Never run `terraform apply`, `terraform destroy`, `terraform import`, `terraform state`, or `terraform plan` against a real backend.
 
-For CI files you cannot execute, at minimum parse them (`python3 -c 'import yaml,sys; yaml.safe_load(open(sys.argv[1]))' <file>` if PyYAML is present, otherwise a careful read) and confirm every step you added has a `name:` and every step that existed before still exists with its original name and content.
-
 ## Report
 
 Finish with:
 
-1. What changed, per file, one line each.
-2. Verification results per module and per check, including anything skipped and why.
-3. Follow-ups the user must do outside the repository.
+1. Verification results per module and per check, including anything skipped and why.
+2. Follow-ups the user must do outside the repository.
