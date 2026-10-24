@@ -22,7 +22,7 @@ Read the report once. Then ask one `AskUserQuestion` dialog with two questions:
 1. Which findings to fix. List each finding as ID, severity and rule. Offer, recommended first: the Critical and High findings, all findings, or pick by ID.
 2. Whether to commit per finding or leave the changes uncommitted.
 
-Ask these once, together. Do not ask again per finding.
+Ask these two questions once, together; do not repeat them per finding.
 
 ## Run the loop
 
