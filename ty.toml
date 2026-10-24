@@ -4,7 +4,7 @@ python-platform = "all"
 root = ["packages", "tests"]
 
 [src]
-include = ["packages", "tests"]
+include = ["packages", "skills", "tests"]
 respect-ignore-files = true
 exclude-scripts = true
 
