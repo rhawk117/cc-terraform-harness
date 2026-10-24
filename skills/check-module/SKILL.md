@@ -54,5 +54,5 @@ These touch no backend, state or cloud account, but they are not all read-only a
 
 Finish with:
 
-1. Verification results per module and per check, including anything skipped and why.
+1. Verification results per module and per check, including anything skipped and why, and any file the checks rewrote.
 2. Follow-ups the user must do outside the repository.
