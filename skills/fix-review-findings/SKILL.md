@@ -35,7 +35,7 @@ Take the chosen findings in report order. For each one, run the steps below to t
    - When commits are on: the instruction to commit this finding alone, with a message that names the rule and the scope.
 2. **Read the author's report.** `<status>done</status>` with no failing `<gate>` goes to step 3. Anything else goes to Escalate.
 3. **Run the `check-module` skill** on the touched module and compare its result with the finding's Verify line. A failing check is a failed gate for Escalate, and its output is what you hand back.
-4. **Record the outcome** (fixed, deferred, stopped), the commit SHA when there is one, and any `<question>` the author left, for the hand-off.
+4. **Record the outcome** (fixed, deferred as unresolved, or not reached), the commit SHA when there is one, and any `<question>` the author left, for the hand-off.
 
 ## Escalate
 
@@ -49,6 +49,7 @@ Route a `blocked` or failed author report by its kind:
   2. Take the advisor's alternative.
   3. Defer the finding to the hand-off as unresolved.
   4. Stop the loop.
+- **Any other blocked report** (for example a scope boundary or an unavailable describe named in `<blocking>`): go straight to the user, quote the author's `<blocking>` text, and offer the same four choices as the conflict route. Add no fifth choice.
 
 No finding is set aside without the user choosing it. Stopping the loop still ends with the hand-off table.
 
