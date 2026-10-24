@@ -1,13 +1,13 @@
 # Configuration snippets
 
-Starting points, not drop-ins. Adapt paths, providers, and versions to the repo and the resolver output. When a file already exists, merge the relevant entries into it and keep everything that was there.
+Starting points, not drop-ins. Adapt paths, providers, and versions to the repository's pins or the user's answers. When a file already exists, merge the relevant entries into it and keep everything that was there.
 
 ## .pre-commit-config.yaml
 
 ```yaml
 repos:
   - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: <resolved pre-commit-terraform tag>
+    rev: <pinned pre-commit-terraform tag>
     hooks:
       - id: terraform_fmt
       - id: terraform_validate
@@ -30,7 +30,7 @@ Merging into an existing file: add missing hook ids under the existing `pre-comm
 
 ```hcl
 tflint {
-  required_version = ">= <resolved tflint minor>"
+  required_version = ">= <pinned tflint minor>"
 }
 
 config {
@@ -44,7 +44,7 @@ plugin "terraform" {
 
 plugin "aws" {
   enabled = true
-  version = "<resolved ruleset tag without v>"
+  version = "<pinned ruleset tag without v>"
   source  = "github.com/terraform-linters/tflint-ruleset-aws"
 }
 ```
@@ -125,7 +125,7 @@ aqua.yaml:
 ```yaml
 registries:
   - type: standard
-    ref: <resolved aqua registry tag>
+    ref: <pinned aqua registry tag>
 packages:
   - name: hashicorp/terraform@<version>
   - name: terraform-linters/tflint@<version>

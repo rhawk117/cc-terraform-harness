@@ -4,8 +4,8 @@ allowed-tools: mcp__plugin_terraform-harness_terraform__describe mcp__plugin_ter
 description: >-
   Bootstrap or improve the tooling around any Terraform repository through a short interview: version pinning,
   fmt/validate, tflint, trivy or checkov, OPA/conftest policy, terraform-docs, pre-commit, a local
-  task runner, CI integration, dependency automation, and repo hygiene, with tool versions resolved from GitHub
-  releases and every existing rule, hook, ignore, and workflow step preserved. Use this whenever the user wants to
+  task runner, CI integration, dependency automation, and repo hygiene, with tool versions taken from existing pins or the user's answers
+  and every existing rule, hook, ignore, and workflow step preserved. Use this whenever the user wants to
   set up, audit, harden, modernize, or add standard tooling to a Terraform repo, asks what linting or scanning a
   repo is missing, wants pre-commit or CI checks for Terraform, wants tool versions pinned or updated, or mentions
   tflint, trivy, tfsec, checkov, conftest, terraform-docs, pre-commit-terraform, or infracost for a repo. Also use
@@ -130,7 +130,7 @@ These hold for every edit in Phase 5.
 
 - Never delete an existing pre-commit hook, tflint rule block, `.trivyignore` or `.checkov.yaml` skip, Rego file, workflow step, `.gitignore` line, or task-runner target. Add beside it.
 - When an existing configuration disables a check, keep it disabled. If you think it should be enabled, say so in the report; do not flip it.
-- When an existing version pin is older than the resolved latest, ask before bumping. Bumping is a separate change with its own row in the plan.
+- When an existing version pin is older than the version the user names, ask before bumping. Bumping is a separate change with its own row in the plan.
 - When an existing workflow step lacks a `name:`, add one that describes what the step already does. Do not change the `uses:` or `run:` content while doing so.
 - When a `tfsec` reference exists, propose `replace-deprecated` with `trivy config`, carry every `tfsec:ignore` comment over as the equivalent trivy ignore, and show the mapping in the plan. This is the only case where removal is the right action, and it still requires approval.
 - When the repo uses an orchestrator (terragrunt, terramate, atmos, atlantis), route commands through it rather than calling `terraform` directly, and keep its config untouched unless a row in the plan targets it.
@@ -148,7 +148,7 @@ Follow it with the discovery table so the user can see what was checked, and not
 </no-change-outcome>
 
 <verification-discipline>
-Everything you assert about the repo must trace to a file you read or a command you ran in this session. Everything you assert about a tool version must trace to the resolver output or a user answer. When neither exists, the honest sentence is "I have not verified this" followed by the command that would.
+Everything you assert about the repo must trace to a file you read or a command you ran in this session. Everything you assert about a tool version must trace to the repository's pins or the user's answer. When neither exists, the honest sentence is "I have not verified this" followed by the command that would.
 
 Before writing any configuration, confirm the target tool's current CLI flags from its `--help` output or bundled reference; several of these tools renamed flags across releases. Do not rely on the flag names you remember.
 
