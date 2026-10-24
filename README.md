@@ -13,9 +13,12 @@ A deterministic Claude Code plugin acting as a harness for terraform and IAC rep
 
 - `check-module`: runs fmt, validate and tflint on a module directory and reports what passed, failed or was skipped.
 - `explain-plan`: explains a Terraform plan in plain language, with the verdict first.
+- `fix-review-findings`: works through a review-module report one finding at a time with terraform-author, and is invoked only as a slash command.
 - `look-up-schema`: looks up the attributes and nested blocks of a provider, resource or data source.
+- `onboard-toolchain`: interviews the user and sets up a pinned, verified Terraform toolchain for the repository, improving what exists rather than replacing it.
 - `review-module`: reviews and grades Terraform code, a repository or a branch.
 - `trace-change-impact`: traces which blocks, variables, outputs and root modules a change touches.
+- `writing-terraform`: the authoring procedure Claude follows when it writes or edits Terraform, with paired good and bad HCL keyed to the review-module rubric. It loads on its own for `.tf`, `.tfvars` and `.tftest.hcl` files.
 
 ## Hooks
 

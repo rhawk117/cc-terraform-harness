@@ -1,0 +1,171 @@
+{
+  "tools": [
+    {
+      "name": "diagnostics",
+      "description": "Check one Terraform module directory without changing it.\n\nRuns the terraform fmt check, terraform validate and tflint in the directory and returns\neach check's status (passed, failed or skipped) with its findings, each carrying the file\nand line when the tool reports one. A check whose binary is not on PATH is skipped with\nthe reason. The directory is relative to the project root or absolute inside it.\n",
+      "inputSchema": {
+        "$defs": {
+          "ProjectPath": {
+            "format": "path",
+            "type": "string",
+            "x-project-path": true
+          }
+        },
+        "properties": {
+          "directory": {
+            "$ref": "#/$defs/ProjectPath"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "title": "diagnosticsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "diagnosticsDictOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "plan_digest",
+      "description": "Summarize one plan JSON document without changing anything.\n\nReads a plan rendered by `terraform show -json <planfile>` and returns the count of\nresources per action (a replacement counts as replace), each changed resource with its\naddress and actions (replacements marked, no-op resources left out) and the output\nchanges, plus risk facts: per resource `forced_by` (attributes forcing a replacement),\n`sensitive_attributes` (names only) and `flags`, and top level `moves`, `imports`,\n`drifted` addresses and `plan_flags`. The path is relative to the project root or absolute\ninside it.\nA binary plan file or state JSON is refused; render it with `terraform show -json` first.\n",
+      "inputSchema": {
+        "$defs": {
+          "ProjectPath": {
+            "format": "path",
+            "type": "string",
+            "x-project-path": true
+          }
+        },
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/ProjectPath"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "plan_digestArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "plan_digestDictOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "describe",
+      "description": "Summarize one Terraform module, `.tf` file or `.tfvars` file without changing anything.\n\nFor a module directory or a `.tf` file, lists the variables (type, whether a default\nexists, description, sensitive), outputs, resources, data sources, module calls with\ntheir sources and required providers with source and version constraint, each with its\nfile and line range. For a `.tfvars` file, lists the variables it assigns, split into\nthose declared by the module in the same directory and those that are not. Files that\ncannot be read or do not parse are reported under problems. The path is relative to the\nproject root or absolute inside it.\n",
+      "inputSchema": {
+        "$defs": {
+          "ProjectPath": {
+            "format": "path",
+            "type": "string",
+            "x-project-path": true
+          }
+        },
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/ProjectPath"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "describeArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "describeDictOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "provider_schema",
+      "description": "Read one level of a provider, resource or data source schema without changing anything.\n\nGive the module directory, the type (a resource or data source type such as aws_instance,\nor the provider's local name such as aws when kind is provider) and the kind (resource,\ndata_source or provider). The provider comes from the module's required_providers, or is\nhashicorp/<prefix> when undeclared. Returns the locked provider version beside the\nconfiguration's version constraint, the level's attributes (type, required, optional,\ncomputed, sensitive, deprecated, description) and one summary per nested block (nesting\nmode, min and max items, attribute and block counts). Pass block as a dotted path such\nas ebs_block_device or a.b to read a nested block or nested attribute instead of the top\nlevel. Needs the module initialized, with a .terraform.lock.hcl entry for the provider.\nThe path is relative to the project root or absolute inside it.\n",
+      "inputSchema": {
+        "$defs": {
+          "ProjectPath": {
+            "format": "path",
+            "type": "string",
+            "x-project-path": true
+          },
+          "SchemaKind": {
+            "enum": [
+              "resource",
+              "data_source",
+              "provider"
+            ],
+            "type": "string"
+          }
+        },
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/ProjectPath"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/$defs/SchemaKind"
+          },
+          "block": {
+            "default": "",
+            "title": "Block",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "type",
+          "kind"
+        ],
+        "title": "provider_schemaArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "provider_schemaDictOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "change_impact",
+      "description": "Report what a git diff changed in Terraform and which root modules it reaches.\n\nGive a directory inside the project and a base ref (default HEAD). Changes are the\nworking tree, staged and untracked .tf files under that directory against the merge base\nof the ref and HEAD. Returns the changed blocks (added, modified or removed, a removed\nblock located at its base file and line), each changed module's variable and output\nchanges (added, removed, type or default changed, as expression text with whitespace\ncollapsed) and every root module in the whole project that reaches a changed module with\nits shortest module call path. Reads only git and the files; no plan or state.\nThe path is relative to the project root or absolute inside it.\n",
+      "inputSchema": {
+        "$defs": {
+          "ProjectPath": {
+            "format": "path",
+            "type": "string",
+            "x-project-path": true
+          }
+        },
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/ProjectPath"
+          },
+          "base_ref": {
+            "default": "HEAD",
+            "title": "Base Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "change_impactArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "change_impactDictOutput",
+        "type": "object"
+      }
+    }
+  ]
+}

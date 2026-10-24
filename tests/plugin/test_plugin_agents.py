@@ -18,9 +18,12 @@ MCP_TOOLS = frozenset({
 SKILLS = frozenset({
     'check-module',
     'explain-plan',
+    'fix-review-findings',
     'review-module',
     'look-up-schema',
+    'onboard-toolchain',
     'trace-change-impact',
+    'writing-terraform',
 })
 AGENT_MODELS = {
     'terraform-author': 'sonnet',
@@ -29,7 +32,7 @@ AGENT_MODELS = {
     'terraform-edit-reviewer': 'haiku',
 }
 AGENT_SKILLS = {
-    'terraform-author': ['review-module'],
+    'terraform-author': ['writing-terraform'],
     'terraform-researcher': [],
     'terraform-advisor': ['review-module', 'explain-plan'],
     'terraform-edit-reviewer': ['review-module'],

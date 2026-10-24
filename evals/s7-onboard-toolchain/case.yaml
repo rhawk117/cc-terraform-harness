@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: s7-onboard-toolchain
+tags: [smoke, onboard-toolchain]
+context:
+  scaffold_script: fixture.sh

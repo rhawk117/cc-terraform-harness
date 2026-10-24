@@ -1,0 +1,29 @@
+{
+  "directory": "modules/db",
+  "checks": {
+    "fmt": {
+      "status": "passed",
+      "reason": null,
+      "findings": []
+    },
+    "validate": {
+      "status": "failed",
+      "reason": null,
+      "findings": [
+        {
+          "scope": "module",
+          "severity": "error",
+          "summary": "Missing required provider",
+          "detail": "This configuration requires provider registry.terraform.io/hashicorp/aws, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
+          "file": null,
+          "line": null
+        }
+      ]
+    },
+    "tflint": {
+      "status": "passed",
+      "reason": null,
+      "findings": []
+    }
+  }
+}

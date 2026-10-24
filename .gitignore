@@ -32,3 +32,6 @@ coverage.xml
 /.claude/output-styles
 /.claude/workflows
 /.claude/skills
+
+# claude plugin eval run output
+evals/results/

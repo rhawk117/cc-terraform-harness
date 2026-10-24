@@ -35,7 +35,7 @@ Flagged when they appear in the after-state of a created or updated resource.
 | `public-flag` | `publicly_accessible`, `public_network_access_enabled`, `map_public_ip_on_launch`, `assign_public_ip` set to true; `acl` set to `public-read` or `public-read-write` | Same as above, for resources that expose themselves without a firewall rule. |
 | `deletion-protection-off` | `deletion_protection`, `prevent_destroy`, `enable_deletion_protection`, `purge_protection_enabled` transitioning true -> false | Often the first step of an accidental destroy in a later plan. |
 | `encryption-off` | `storage_encrypted`, `encrypted`, `encryption_enabled`, `kms_key_id` transitioning to false or null | Compliance regression, and on some providers it forces a replacement. |
-| `iam-change` | Resource type contains `iam`, `policy`, `role_binding`, `role_assignment`, `permission`, `access_control` | Privilege changes deserve a sentence even when small. Wildcards (`*`) in the after value get a second look. |
+| `iam-change` | Resource type contains `iam`, `policy`, `role_binding`, `role_assignment`, `permission`, `access_control` | Privilege changes deserve a sentence even when small. Wildcards (`*`) in actions, resources or principals, service-wide actions (`s3:*`), and a `*` principal on a KMS key policy get a second look. A policy that is `(known after apply)` is unverified, not clean. |
 | `security-rule-change` | Resource type contains `security_group`, `firewall`, `network_acl`, `nsg`, `network_policy` | The blast radius is whatever sits behind the rule. |
 
 ## Judgement calls the tool cannot make
@@ -43,4 +43,7 @@ Flagged when they appear in the after-state of a created or updated resource.
 - Whether a destroy is intentional decommissioning. A plan that removes an entire module cleanly, with the PR title saying so, is fine. Say what is lost anyway; the reviewer decides.
 - Whether `create_before_destroy` on a stateful resource is safe. A new RDS instance created before the old one is deleted still starts empty unless it is a read replica or restored from snapshot.
 - Whether `(known after apply)` on an identity attribute (ARN, ID, name with a random suffix) will cascade replacements into dependents on the next plan. Mention it when the dependents are stateful.
+- Whether a stateful replacement is really a rename. A table, database or bucket replaced because its name changed, often through a variable default, comes back empty. The safe path creates the new resource beside the old one, migrates, and retires the old one in a later change. Say so when `forced_by` is a name.
+- Whether a move lands on the right object. The plan shows no replacement even when a `moved` block points an address at a different resource. Compare the identifying attributes before and after each move.
+- `force_destroy = true` and `skip_final_snapshot = true` are not flagged. Name them when they appear on a stateful resource: the next destroy deletes the bucket's objects or skips the database's final snapshot.
 - Cost. The tool does not price anything. Call out instance class, node count, storage size, and provisioned throughput changes as "cost likely changes" and leave the number to the reviewer.

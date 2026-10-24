@@ -1,0 +1,93 @@
+{
+  "path": "modules/app",
+  "kind": "module",
+  "variables": [
+    {
+      "name": "environment",
+      "type": "string",
+      "has_default": false,
+      "description": "Deployment environment, used in resource names.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/app/variables.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "role_arn",
+      "description": "ARN of the application role.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/app/outputs.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    }
+  ],
+  "resources": [
+    {
+      "type": "aws_dynamodb_table",
+      "name": "orders",
+      "location": {
+        "file": "modules/app/dynamodb.tf",
+        "start_line": 1,
+        "end_line": 18
+      }
+    },
+    {
+      "type": "aws_iam_role",
+      "name": "app",
+      "location": {
+        "file": "modules/app/iam.tf",
+        "start_line": 12,
+        "end_line": 15
+      }
+    },
+    {
+      "type": "aws_iam_role_policy",
+      "name": "app",
+      "location": {
+        "file": "modules/app/iam.tf",
+        "start_line": 17,
+        "end_line": 32
+      }
+    },
+    {
+      "type": "aws_sqs_queue",
+      "name": "order_events",
+      "location": {
+        "file": "modules/app/sqs.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    }
+  ],
+  "data_sources": [
+    {
+      "type": "aws_iam_policy_document",
+      "name": "assume_ec2",
+      "location": {
+        "file": "modules/app/iam.tf",
+        "start_line": 1,
+        "end_line": 10
+      }
+    }
+  ],
+  "module_calls": [],
+  "required_providers": [
+    {
+      "local_name": "aws",
+      "source": "hashicorp/aws",
+      "version": "~> 6.0",
+      "location": {
+        "file": "modules/app/versions.tf",
+        "start_line": 5,
+        "end_line": 8
+      }
+    }
+  ],
+  "problems": []
+}

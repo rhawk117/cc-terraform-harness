@@ -3,6 +3,8 @@
 Eight categories. Every finding cites one rule ID from this file. Rule IDs the
 scanner emits are marked `[scan]`; the rest are found only by reading. The
 scanner's output is a map of where to look, never a finding on its own.
+Rules marked `[validate]` are ones `terraform validate` reports by itself,
+so a `diagnostics` failure maps straight to them.
 
 The single test behind every rule: **what does `terraform plan` print, and can
 the reviewer predict it from the code?** Good Terraform makes the plan boring
@@ -10,15 +12,16 @@ and predictable. Bad Terraform makes it a surprise.
 
 ## Contents
 
-1. Resource Addressing (RA)
-2. Inputs and Contracts (IN)
-3. Dependency Graph (DE)
-4. State and Blast Radius (BR)
-5. Logic and Readability (LO)
-6. Secrets and Sensitivity (SE)
-7. Version Discipline (VE)
-8. Module and Repo Structure (ST)
-9. False-positive checklist
+01. Resource Addressing (RA)
+02. Inputs and Contracts (IN)
+03. Dependency Graph (DE)
+04. State and Blast Radius (BR)
+05. Logic and Readability (LO)
+06. Secrets and Sensitivity (SE)
+07. Version Discipline (VE)
+08. Module and Repo Structure (ST)
+09. False-positive checklist
+10. False-negative checklist
 
 ______________________________________________________________________
 
@@ -39,7 +42,8 @@ Every rule here is a destroy/create pair waiting to happen.
   resource or module renamed, `count` converted to `for_each` or back, a
   `for_each` key scheme changed, a resource pulled into or out of a module.
   Plan will destroy the old and create the new. `moved {}` makes it a
-  no-op rename.
+  no-op rename. In plan JSON the signature is a `delete` at one address
+  and a `create` of the same type at another in the same plan.
 - **RA4** `[scan]` `provisioner` blocks. They are outside the graph, cannot
   be planned, run once, and fail silently on retries. Almost always replace
   with cloud-init, user data, a config-management tool, or a separate
@@ -47,10 +51,24 @@ Every rule here is a destroy/create pair waiting to happen.
 - **RA5** Immutable argument changed on a stateful resource (name, zone,
   region, engine, disk type) without `create_before_destroy` or an
   explicit migration note. Plan shows `must be replaced`; reviewer should
-  be able to point at the line and say so before the plan runs.
+  be able to point at the line and say so before the plan runs. The change
+  often arrives through a variable default or a tfvars value (a table name
+  default bumped to `orders-v2`), and a `moved` block does not prevent it.
+  Plan JSON shows `action_reason` `replace_because_cannot_update` and the
+  forcing attribute in `replace_paths`. Fix: create the new resource
+  beside the old one, migrate, and remove the old one in a later change.
+  A deliberate single replacement is `terraform apply -replace=ADDRESS`,
+  not a destroy followed by a re-apply.
 - **RA6** `for_each` keys derived from values unknown at plan time (an
   attribute of a resource created in the same apply). Fails with "invalid
   for_each argument" on first apply and forces `-target` rituals.
+- **RA7** `[branch mode]` `moved` block that maps state to the wrong
+  object: valid HCL, no replacement in the plan, but the address now
+  tracks a different instance (index 0 moved to the key index 1 held, a
+  user moved into the wrong module instance). Check each move by
+  comparing identifying attributes (name, ARN, ID) in prior state against
+  the planned values (`terraform state show`, plan JSON
+  `previous_address`), never by label similarity.
 
 ## 2. Inputs and Contracts (IN)
 
@@ -77,6 +95,17 @@ the error message names a field the caller never wrote.
   initialised where the review is happening, which is itself information.
 - **IN7** Copy-pasted resource blocks that differ only in a name or size,
   where a `for_each` over a typed map would express the intent.
+- **IN9** `[branch mode]` New literal or variable default (CIDR range,
+  instance size, retention period, region, replica count) that traces to
+  neither the request, the PR text, nor a value already in the
+  repository. A guessed value reads exactly like a deliberate one. Fix:
+  declare the variable without a default and list it as a required
+  input, or cite where the value came from.
+- **IN10** `[validate]` Required input with no value: a resource missing
+  a required argument or nested block (`The argument "..." is required`,
+  `Insufficient ... blocks`), a module call that omits a required
+  variable, or a root variable with no default and no tfvars entry
+  (`terraform plan` stops at `No value for required variable`).
 
 ## 3. Dependency Graph (DE)
 
@@ -97,10 +126,19 @@ graph; the reviewer sees a dependency, Terraform does not.
 - **DE3** Hardcoded cloud resource ID (project number, VPC self-link, AMI
   ID, ARN) where a `data` source lookup or a reference would keep the
   configuration portable. Severity rises when the ID is environment-specific.
+  A 12-digit account ID inside an ARN or a policy counts, as does an
+  `ami-` literal. Fix: `aws_caller_identity`, `aws_region`,
+  `aws_partition`, or `aws_ami` data sources, a reference, or a variable.
 - **DE4** `depends_on` on a `module` block. Forces every resource in the
   module to wait for every resource in the target; usually a sign the
   needed output was never exposed. Medium unless justified in the module's
   README.
+- **DE5** `[validate]` Reference to a resource, module, or variable that
+  no longer exists after a partial rename or removal
+  (`Reference to undeclared resource`, `Reference to undeclared module`).
+  The rename touched the declaring file and missed the outputs, alarms,
+  or policies that read it. Find every reference before renaming or
+  removing an address.
 
 ## 4. State and Blast Radius (BR)
 
@@ -111,7 +149,8 @@ reach, and what stops a plan from destroying data.
 - **BR1** `[scan]` No remote backend, or a `backend "local"`, in a root
   module. State on a laptop is a single point of failure and a plaintext
   secret store with no access control. Critical when the root manages
-  anything stateful.
+  anything stateful. A committed `*.tfstate` or `*.tfstate.backup` file is
+  this rule whatever the backend block says.
 - **BR2** `[scan]` Stateful resource (database, bucket, disk, KMS key,
   secret) without `lifecycle { prevent_destroy = true }` or the provider's
   `deletion_protection`. Confirm by reading: a child resource whose parent
@@ -144,6 +183,17 @@ reach, and what stops a plan from destroying data.
 - **BR9** No lock on the backend (backend type that supports locking with
   locking disabled, or a backend that cannot lock). Concurrent applies
   corrupt state.
+- **BR10** `[branch mode]` Safety setting weakened: `prevent_destroy`
+  removed or set to false, `deletion_protection` disabled,
+  `skip_final_snapshot = true`, or `force_destroy = true` added. Usually
+  a temporary change to get one apply through that then reaches the main
+  branch. Fix: revert it in the same change, or name the follow-up that
+  restores it.
+- **BR11** Correct change, wrong context: the change targets a different
+  backend key, workspace, account, or region than the request names (the
+  prod root edited for a staging request, a provider `region` that
+  differs from the root's). Confirm backend, workspace, account, and
+  region before reading the HCL.
 
 ## 5. Logic and Readability (LO)
 
@@ -175,7 +225,14 @@ harder to predict from the code is a defect, even when it is DRY.
   40-input mega-module.
 - **LO9** Naming: resource labels that repeat the type
   (`google_storage_bucket.bucket`), inconsistent case, labels that encode
-  environment (`web_prod`) so the module cannot be reused.
+  environment (`web_prod`) so the module cannot be reused. Also missing
+  tags where the repository tags (no `default_tags` in the root, no
+  `tags` on the resource), which breaks cost ownership and tag policies.
+- **LO10** `[branch mode]` Intent mismatch: the change validates and
+  plans but does not do what was asked. The resource type is wrong, a
+  needed resource is missing, or the right resource is misconfigured.
+  Restate the request as checkable conditions and check each one against
+  the code or the plan.
 
 ## 6. Secrets and Sensitivity (SE)
 
@@ -193,14 +250,30 @@ encrypting the backend, and restricting who can read it.
 - **SE4** Secret generated or passed in a way that lands in state when a
   write-only argument (`password_wo`, `secret_data_wo`) or an ephemeral
   resource would keep it out. Medium; High when the provider supports
-  write-only for that exact resource and the code ignores it.
+  write-only for that exact resource and the code ignores it. Static
+  long-lived credentials count too: an `aws_iam_access_key` puts its
+  secret in state, where a role, OIDC federation, or a provider-managed
+  credential (`manage_master_user_password`) would not.
 - **SE5** Secret sourced from a tfvars file, `.env`, or a
   `TF_VAR_` value committed to the repository. Check `git log` for the
   history, not just the working tree; a removed secret is still in
   history.
 - **SE6** Overly broad IAM as a shortcut (`roles/owner`, `roles/editor`,
-  `*` in a policy action, `0.0.0.0/0` on an admin port) with no
-  justification in the code or PR.
+  `*` in a policy action, resource, or principal, a service-wide action
+  such as `s3:*` or `dynamodb:*`, a KMS key policy with an `AWS`
+  principal of `*`) with no justification in the code or PR. It is
+  usually added to clear an AccessDenied; the fix is the one action the
+  error names on the one ARN. Judge the resolved policy (plan JSON
+  `change.after.policy`, the rendered `aws_iam_policy_document`), not the
+  HCL text, so a restructured or interpolated wildcard still counts. A
+  policy unknown at plan time is unverified, not clean.
+- **SE7** Missing hardening or public exposure: a new resource without
+  the controls its type needs (encryption at rest, an S3 public access
+  block, access or flow logging where the repository logs), or exposure
+  through `publicly_accessible = true` or ingress from `0.0.0.0/0` or
+  `::/0` on an admin or database port. Controls are rarely added unless
+  someone asks, so check each new resource against its type's baseline
+  rather than looking only for what is wrong.
 
 ## 7. Version Discipline (VE)
 
@@ -222,7 +295,26 @@ major bump can plan replacements with no code change.
   differently.
 - **VE6** Provider major version far behind current with deprecation
   warnings in the code (deprecated arguments still in use). Low unless the
-  provider has already dropped the argument.
+  provider has already dropped the argument. Includes idioms the locked
+  provider superseded: inline `acl` on `aws_s3_bucket` where the current
+  major uses `aws_s3_bucket_acl`, and `aws_alb` where `aws_lb` is current
+  (an accepted alias, so Low). A version literal for a managed service
+  (Kubernetes, a database engine, a function runtime) that is out of
+  standard support is Medium: extended support costs more, and the forced
+  upgrade can be a replacement.
+- **VE7** `[validate]` Argument, nested block, or resource type that does
+  not exist in the locked provider's schema
+  (`An argument named "..." is not expected here`,
+  `Blocks of type "..." are not expected here`,
+  `The provider ... does not support resource type`). Clean, idiomatic
+  HCL hides these. Check against the `provider_schema` tool for the
+  version in `.terraform.lock.hcl`, not against memory.
+- **VE8** `[branch mode]` Dependency drift: an unexplained edit to
+  `.terraform.lock.hcl`, a loosened `required_providers` or
+  `required_version` constraint, a new or changed module `source`, or a
+  provider or module name the registry does not have (a typosquatting
+  target). A new `external` data source runs a local program during
+  plan, so planning the branch is running its code.
 
 ## 8. Module and Repo Structure (ST)
 
@@ -247,6 +339,21 @@ readable, and whether a module can be understood from its `variables.tf`.
 - **ST6** Environment-specific logic inside a reusable module
   (`if var.env == "prod"` scattered through resources). The module should
   take the sized inputs; the root decides the sizing.
+- **ST7** Provider configured inside a child module, or the same
+  provider configured twice in one root without an `alias` (`[validate]`
+  reports the duplicate). Providers belong in roots: one default
+  configuration per provider, every other one aliased and passed to
+  modules through `providers`.
+- **ST8** CI that drives Terraform on wrong assumptions: a
+  `working-directory` that does not match the tree (paths are
+  case-sensitive), an action reference that does not resolve, a value
+  written to `$GITHUB_ENV` and expected in the same step, or
+  `terraform apply -auto-approve` without a saved plan file that an
+  earlier, reviewed step produced.
+- **ST9** Hand-rolled resources that duplicate a module the repository
+  already maintains, or ignore its naming, tagging, and layout
+  conventions. Low; Medium when the hand-rolled copy skips hardening the
+  module provides.
 
 ______________________________________________________________________
 
@@ -281,3 +388,36 @@ Run every candidate finding through this before recording it.
 - Test fixtures and example directories (`examples/`, `test/`,
   `fixtures/`) are graded for correctness, not for BR or VE hygiene, and
   say so in the report's scope line.
+- SE7 on a public load balancer listener open to `0.0.0.0/0` on 80 or
+  443 is not a finding; the same CIDR on the database or admin port
+  behind it is.
+- BR10 on a resource the change deliberately decommissions, with the PR
+  saying so, is not a finding. Record what is lost under Plan impact
+  anyway.
+
+## 10. False-negative checklist
+
+Run this before calling a category clean, and in full on any branch that
+fixes an earlier finding or scanner result.
+
+- A fix changes the property, not the match. Confirm the attribute the
+  finding names changed in the resolved value (plan JSON, the rendered
+  policy), not only that the rule stopped matching. Restructuring code
+  until a rule misses it is not a fix; in wildcard IAM repairs the
+  `Resource = "*"` grant is the part that usually survives.
+- The changed attribute is the one the finding named. A fix for EBS
+  encryption that flips `associate_public_ip_address` is a different
+  change, and the original finding stands.
+- Rescan the whole module against the base, not only the targeted rule.
+  Fixes that restructure resources break checks that passed before, most
+  often IAM.
+- Every `moved` block lands on the right object (RA7).
+- `(known after apply)` on a policy, a CIDR, or an identifier is
+  unverified, not clean. Say so in Not verified.
+- Idiomatic style is not evidence. Generated HCL is uniformly clean and
+  well named whether its arguments exist (VE7), its values were sourced
+  (IN9), and its policies are scoped (SE6) or not. Style tells such as
+  comments that narrate the tool, `aws_alb`, or
+  `count = var.env == "prod" ? 1 : 0` environment switches are cues to
+  look harder. They are never findings by themselves, and never
+  reassurance.
