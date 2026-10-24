@@ -133,18 +133,23 @@ def smell_grep_idiom_cases() -> pytest.MarkDecorator:
     ])
 
 
-def smell_grep_clean_cases() -> pytest.MarkDecorator:
+def smell_grep_regression_cases() -> pytest.MarkDecorator:
     regression = (pytest.mark.regression,)
+    return create_scenario_cases([
+        SmellScenario(name='http-tokens', source='http_tokens = "required"\n', marks=regression),
+        SmellScenario(
+            name='api-key-source', source='api_key_source = "HEADER"\n', marks=regression
+        ),
+    ])
+
+
+def smell_grep_clean_cases() -> pytest.MarkDecorator:
     pinned_modules = (
         'module "vpc" {\n  source  = "terraform-aws-modules/vpc/aws"\n  version = "~> 5.0"\n}\n'
         'module "net" {\n  source = "git::https://example.com/net.git?ref=v1.2.0"\n}\n'
         'module "local" {\n  source = "../modules/local"\n}\n'
     )
     return create_scenario_cases([
-        SmellScenario(name='http-tokens', source='http_tokens = "required"\n', marks=regression),
-        SmellScenario(
-            name='api-key-source', source='api_key_source = "HEADER"\n', marks=regression
-        ),
         create_scenario('secret-name', 'secret_name = "ledger/db"\n'),
         create_scenario('secret-by-reference', 'password = random_password.db.result\n'),
         create_scenario('interpolated-secret', 'secret = "${random_password.db.result}"\n'),
@@ -197,6 +202,12 @@ class TestSmellGrepRules:
 
     @smell_grep_idiom_cases()
     def test_hardcoded_identifier_stale_idiom_or_unpinned_module_is_reported(
+        self, harness: SmellGrepHarness, scenario: SmellScenario
+    ) -> None:
+        self.assert_reports_exactly(harness, scenario)
+
+    @smell_grep_regression_cases()
+    def test_past_false_positive_is_not_reported(
         self, harness: SmellGrepHarness, scenario: SmellScenario
     ) -> None:
         self.assert_reports_exactly(harness, scenario)
