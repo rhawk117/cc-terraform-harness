@@ -24,6 +24,8 @@ Read the report once. Then ask one `AskUserQuestion` dialog with two questions:
 
 Ask these two questions once, together; do not repeat them per finding.
 
+When `AskUserQuestion` is not available, ask the same two questions in one plain-text message. Number the two questions, write each as a question ending in a question mark, and letter its choices with the recommended choice first, marked recommended. List each finding as ID, severity and rule, as in the dialog. Keep all three choices for question 1, even when two of them select the same findings. Stop until the user answers.
+
 ## Run the loop
 
 Take the chosen findings in report order. For each one, run the steps below to the end before starting the next.
