@@ -1,0 +1,20 @@
+{
+  "directory": "envs/dev",
+  "checks": {
+    "fmt": {
+      "status": "passed",
+      "reason": null,
+      "findings": []
+    },
+    "validate": {
+      "status": "passed",
+      "reason": null,
+      "findings": []
+    },
+    "tflint": {
+      "status": "passed",
+      "reason": null,
+      "findings": []
+    }
+  }
+}
