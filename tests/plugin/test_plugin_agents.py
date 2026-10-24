@@ -18,6 +18,7 @@ MCP_TOOLS = frozenset({
 SKILLS = frozenset({
     'check-module',
     'explain-plan',
+    'fix-review-findings',
     'review-module',
     'look-up-schema',
     'onboard-toolchain',

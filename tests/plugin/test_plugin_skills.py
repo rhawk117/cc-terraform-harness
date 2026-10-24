@@ -11,6 +11,7 @@ TOOL_PREFIX = 'mcp__plugin_terraform-harness_terraform__'
 SKILL_TOOLS = {
     'check-module': 'diagnostics',
     'explain-plan': 'plan_digest',
+    'fix-review-findings': 'diagnostics',
     'review-module': 'describe',
     'look-up-schema': 'provider_schema',
     'onboard-toolchain': 'describe',
@@ -35,6 +36,10 @@ class TestPluginSkills:
     ) -> None:
         frontmatter = claude_plugin.skills.given_frontmatters()[skill]
         assert TOOL_PREFIX + tool in allowed_tools(frontmatter)
+
+    def test_fix_review_findings_is_slash_only(self, claude_plugin: PluginInventory) -> None:
+        frontmatter = claude_plugin.skills.given_frontmatters()['fix-review-findings']
+        assert frontmatter['disable-model-invocation'] is True
 
     @pytest.mark.parametrize('skill', SKILL_TOOLS)
     def test_skill_names_itself_and_says_when_to_use_it(
