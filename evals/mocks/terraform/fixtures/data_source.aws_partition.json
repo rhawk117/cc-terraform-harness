@@ -1,0 +1,55 @@
+{
+  "type": "aws_partition",
+  "kind": "data_source",
+  "block": "",
+  "provider": "registry.terraform.io/hashicorp/aws",
+  "version": "6.69.1",
+  "constraint": "~> 6.0",
+  "attributes": [
+    {
+      "name": "dns_suffix",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": true,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "partition",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "reverse_dns_prefix",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    }
+  ],
+  "blocks": []
+}

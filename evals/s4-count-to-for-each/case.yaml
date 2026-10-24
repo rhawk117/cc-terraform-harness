@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: s4-count-to-for-each
+tags: [smoke, writing-terraform]
+context:
+  scaffold_script: fixture.sh

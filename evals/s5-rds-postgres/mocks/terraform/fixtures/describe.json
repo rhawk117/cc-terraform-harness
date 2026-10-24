@@ -1,0 +1,92 @@
+{
+  "path": "modules/billing",
+  "kind": "module",
+  "variables": [
+    {
+      "name": "environment",
+      "type": "string",
+      "has_default": false,
+      "description": "Deployment environment, used in resource names.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/billing/variables.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    },
+    {
+      "name": "vpc_id",
+      "type": "string",
+      "has_default": false,
+      "description": "VPC the billing service runs in.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/billing/variables.tf",
+        "start_line": 6,
+        "end_line": 9
+      }
+    },
+    {
+      "name": "private_subnet_ids",
+      "type": "list(string)",
+      "has_default": false,
+      "description": "Private subnets for billing resources that must not be reachable from the internet.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/billing/variables.tf",
+        "start_line": 11,
+        "end_line": 14
+      }
+    },
+    {
+      "name": "app_security_group_id",
+      "type": "string",
+      "has_default": false,
+      "description": "Security group attached to the billing application tasks.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/billing/variables.tf",
+        "start_line": 16,
+        "end_line": 19
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "invoices_queue_url",
+      "description": "URL of the invoices queue.",
+      "sensitive": false,
+      "location": {
+        "file": "modules/billing/outputs.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    }
+  ],
+  "resources": [
+    {
+      "type": "aws_sqs_queue",
+      "name": "invoices",
+      "location": {
+        "file": "modules/billing/main.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    }
+  ],
+  "data_sources": [],
+  "module_calls": [],
+  "required_providers": [
+    {
+      "local_name": "aws",
+      "source": "hashicorp/aws",
+      "version": "~> 6.0",
+      "location": {
+        "file": "modules/billing/versions.tf",
+        "start_line": 5,
+        "end_line": 8
+      }
+    }
+  ],
+  "problems": []
+}

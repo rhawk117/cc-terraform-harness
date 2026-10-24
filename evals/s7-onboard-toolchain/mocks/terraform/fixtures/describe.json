@@ -1,0 +1,32 @@
+{
+  "path": "envs/dev",
+  "kind": "module",
+  "variables": [],
+  "outputs": [],
+  "resources": [
+    {
+      "type": "aws_s3_bucket",
+      "name": "artifacts",
+      "location": {
+        "file": "envs/dev/main.tf",
+        "start_line": 1,
+        "end_line": 3
+      }
+    }
+  ],
+  "data_sources": [],
+  "module_calls": [],
+  "required_providers": [
+    {
+      "local_name": "aws",
+      "source": "hashicorp/aws",
+      "version": "~> 6.0",
+      "location": {
+        "file": "envs/dev/versions.tf",
+        "start_line": 5,
+        "end_line": 8
+      }
+    }
+  ],
+  "problems": []
+}

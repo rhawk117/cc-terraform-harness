@@ -1,0 +1,176 @@
+{
+  "type": "aws_vpc_security_group_egress_rule",
+  "kind": "resource",
+  "block": "",
+  "provider": "registry.terraform.io/hashicorp/aws",
+  "version": "6.69.1",
+  "constraint": "~> 6.0",
+  "attributes": [
+    {
+      "name": "arn",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "cidr_ipv4",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "cidr_ipv6",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "description",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "from_port",
+      "type": "number",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "ip_protocol",
+      "type": "string",
+      "required": true,
+      "optional": false,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "prefix_list_id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "referenced_security_group_id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "region",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Region where this resource will be [managed](https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints). Defaults to the Region set in the [provider configuration](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#aws-configuration-reference).",
+      "nested": null
+    },
+    {
+      "name": "security_group_id",
+      "type": "string",
+      "required": true,
+      "optional": false,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "security_group_rule_id",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "tags",
+      "type": "map(string)",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "tags_all",
+      "type": "map(string)",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "to_port",
+      "type": "number",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    }
+  ],
+  "blocks": []
+}

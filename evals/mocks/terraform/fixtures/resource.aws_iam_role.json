@@ -1,0 +1,185 @@
+{
+  "type": "aws_iam_role",
+  "kind": "resource",
+  "block": "",
+  "provider": "registry.terraform.io/hashicorp/aws",
+  "version": "6.69.1",
+  "constraint": "~> 6.0",
+  "attributes": [
+    {
+      "name": "arn",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "assume_role_policy",
+      "type": "string",
+      "required": true,
+      "optional": false,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "create_date",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "description",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "force_detach_policies",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "managed_policy_arns",
+      "type": "set(string)",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": true,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "max_session_duration",
+      "type": "number",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "name_prefix",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "path",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "permissions_boundary",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "tags",
+      "type": "map(string)",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "tags_all",
+      "type": "map(string)",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "unique_id",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    }
+  ],
+  "blocks": [
+    {
+      "name": "inline_policy",
+      "nesting_mode": "set",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 2,
+      "block_count": 0
+    }
+  ]
+}

@@ -1,0 +1,657 @@
+{
+  "type": "aws_instance",
+  "kind": "resource",
+  "block": "",
+  "provider": "registry.terraform.io/hashicorp/aws",
+  "version": "6.69.1",
+  "constraint": "~> 6.0",
+  "attributes": [
+    {
+      "name": "ami",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "arn",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "associate_public_ip_address",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "availability_zone",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "disable_api_stop",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "disable_api_termination",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "ebs_optimized",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "enable_primary_ipv6",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "force_destroy",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "get_password_data",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "hibernation",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "host_id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "host_resource_group_arn",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "iam_instance_profile",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "instance_initiated_shutdown_behavior",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "instance_lifecycle",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "instance_state",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "instance_type",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "ipv6_address_count",
+      "type": "number",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "ipv6_addresses",
+      "type": "list(string)",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "key_name",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "monitoring",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "outpost_arn",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "password_data",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "placement_group",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "placement_group_id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "placement_partition_number",
+      "type": "number",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "primary_network_interface_id",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "private_dns",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "private_ip",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "public_dns",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "public_ip",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "region",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Region where this resource will be [managed](https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints). Defaults to the Region set in the [provider configuration](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#aws-configuration-reference).",
+      "nested": null
+    },
+    {
+      "name": "secondary_private_ips",
+      "type": "set(string)",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "security_groups",
+      "type": "set(string)",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "source_dest_check",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "spot_instance_request_id",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "subnet_id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "tags",
+      "type": "map(string)",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "tags_all",
+      "type": "map(string)",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "tenancy",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "user_data",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "user_data_base64",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "user_data_replace_on_change",
+      "type": "bool",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "volume_tags",
+      "type": "map(string)",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "vpc_security_group_ids",
+      "type": "set(string)",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    }
+  ],
+  "blocks": [
+    {
+      "name": "capacity_reservation_specification",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 1,
+      "block_count": 1
+    },
+    {
+      "name": "cpu_options",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 4,
+      "block_count": 0
+    },
+    {
+      "name": "credit_specification",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 1,
+      "block_count": 0
+    },
+    {
+      "name": "ebs_block_device",
+      "nesting_mode": "set",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 12,
+      "block_count": 0
+    },
+    {
+      "name": "enclave_options",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 1,
+      "block_count": 0
+    },
+    {
+      "name": "ephemeral_block_device",
+      "nesting_mode": "set",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 3,
+      "block_count": 0
+    },
+    {
+      "name": "instance_market_options",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 1,
+      "block_count": 1
+    },
+    {
+      "name": "launch_template",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 3,
+      "block_count": 0
+    },
+    {
+      "name": "maintenance_options",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 1,
+      "block_count": 0
+    },
+    {
+      "name": "metadata_options",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 5,
+      "block_count": 0
+    },
+    {
+      "name": "network_interface",
+      "nesting_mode": "set",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 4,
+      "block_count": 0
+    },
+    {
+      "name": "primary_network_interface",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 2,
+      "block_count": 0
+    },
+    {
+      "name": "private_dns_name_options",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 3,
+      "block_count": 0
+    },
+    {
+      "name": "root_block_device",
+      "nesting_mode": "list",
+      "min_items": null,
+      "max_items": 1,
+      "attribute_count": 11,
+      "block_count": 0
+    },
+    {
+      "name": "secondary_network_interface",
+      "nesting_mode": "set",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 12,
+      "block_count": 0
+    },
+    {
+      "name": "timeouts",
+      "nesting_mode": "single",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 4,
+      "block_count": 0
+    }
+  ]
+}

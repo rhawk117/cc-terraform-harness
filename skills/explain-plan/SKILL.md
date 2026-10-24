@@ -21,7 +21,7 @@ The reader might be the SRE approving the apply, the engineer who wrote the chan
 
 3. Read the digest, then read the plan itself for anything it flagged. The tool finds the risk; you explain it. For a large plan, dispatch one `terraform-researcher` per flagged resource or per module address in parallel, each asked what the plan says about that address and what in the configuration explains it; they are cheap and disposable, and their reports give you the before/after facts and the declaring file without pulling the whole plan into your context.
 
-4. Check what the plan does besides create, update and destroy. `moves` are renames in state with no infrastructure change, unless `with_change` says the resource also changes. `imports` bring existing resources under management, and `drifted` lists resources someone changed outside Terraform, which the plan may be reverting. Say each in one line.
+4. Check what the plan does besides create, update and destroy. `moves` are renames in state with no infrastructure change, unless `with_change` says the resource also changes. For each move, check in the plan that the identifying attributes (name, identifier, ARN) are the same before and after: a move to the wrong object shows no replacement while state now tracks a different resource. `imports` bring existing resources under management, and `drifted` lists resources someone changed outside Terraform, which the plan may be reverting. Say each in one line.
 
 5. Write the explanation in the format below.
 
@@ -47,7 +47,7 @@ Verdict wording:
 
 - **Safe to apply** - creates and in-place updates only, nothing in the watch-out list.
 - **Needs a look** - replacements, destroys of stateless things, security-adjacent changes, or anything the digest flagged.
-- **Do not apply as-is** - destroys or replaces a stateful resource without evidence of a backup, opens something to the internet, strips deletion protection, or the plan destroys a large share of the workspace.
+- **Do not apply as-is** - destroys or replaces a stateful resource without evidence of a backup, opens something to the internet, grants wildcard IAM (`*` actions, resources or principals), strips deletion protection, or the plan destroys a large share of the workspace.
 
 ## Writing rules and why
 
@@ -60,6 +60,7 @@ Verdict wording:
 - No praise, no preamble, no "Here's a breakdown of your plan". Start with the verdict.
 - When the plan is clean, the whole explanation can be three lines. Padding a safe plan to look thorough trains readers to skim, which is the problem this skill exists to fix.
 - Never invent values the plan does not contain. Sensitive attributes appear in the digest by name only; say that they changed, not what they changed to.
+- When you tell the reader how to apply, name the saved plan file the JSON came from (`terraform apply plan.out`). Never suggest `terraform apply -auto-approve`: it plans again and can apply something other than what you explained.
 
 ## Reading the digest
 

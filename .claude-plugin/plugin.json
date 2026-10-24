@@ -3,7 +3,7 @@
   "name": "terraform-harness",
   "displayName": "terraform-harness",
   "version": "0.1.0",
-  "description": "A harness for Terraform and IaC repositories in Claude Code. A Terraform MCP server describes modules, reports validate and tflint diagnostics, digests plans, traces change impact and looks up provider schemas. Four subagents, five skills, terraform-ls, and three hooks that format and check .tf files as Claude works.",
+  "description": "A harness for Terraform and IaC repositories in Claude Code. A Terraform MCP server describes modules, reports validate and tflint diagnostics, digests plans, traces change impact and looks up provider schemas. Four subagents, six skills, terraform-ls, and three hooks that format and check .tf files as Claude works.",
   "homepage": "https://github.com/rhawk117/cc-terraform-harness",
   "repository": "https://github.com/rhawk117/cc-terraform-harness",
   "author": {
