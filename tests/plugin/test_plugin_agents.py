@@ -20,6 +20,7 @@ SKILLS = frozenset({
     'explain-plan',
     'review-module',
     'look-up-schema',
+    'onboard-toolchain',
     'trace-change-impact',
     'writing-terraform',
 })
