@@ -16,6 +16,7 @@ model: haiku
 color: cyan
 effort: low
 maxTurns: 20
+disallowedTools: Write, Edit, NotebookEdit
 ---
 
 <role>

@@ -64,6 +64,7 @@ IGNORED_PLUGIN_KEYS = (
     'user-invocable',
 )
 WRITE_TOOLS = frozenset({'Write', 'Edit'})
+DENIED_WRITE_TOOLS = ['Write', 'Edit', 'NotebookEdit']
 
 
 def agent_tools(frontmatter: Mapping[str, Any]) -> list[str]:
@@ -129,6 +130,15 @@ class TestPluginAgents:
             if WRITE_TOOLS & set(agent_tools(frontmatter))
         }
         assert writers == {'terraform-author'}
+
+    def test_read_only_agents_deny_every_write_tool(self, claude_plugin: PluginInventory) -> None:
+        frontmatters = claude_plugin.subagents.given_frontmatters()
+        denied = {
+            agent: [tool.strip() for tool in frontmatter['disallowedTools'].split(',')]
+            for agent, frontmatter in frontmatters.items()
+            if 'disallowedTools' in frontmatter
+        }
+        assert denied == dict.fromkeys(set(AGENT_MODELS) - {'terraform-author'}, DENIED_WRITE_TOOLS)
 
     @agent_cases()
     def test_agent_mcp_tools_are_terraform_harness_tools(
