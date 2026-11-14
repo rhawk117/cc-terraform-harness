@@ -27,6 +27,12 @@ The plugin installs as `terraform-harness` from the [rygentic-harness](https://g
 
 The plugin does not require particular tool versions. It was developed against terraform 1.15.8, tflint 0.64.0 and terraform-ls 0.39.0.
 
+To check your machine, run [`precheck.sh`](precheck.sh). It lists what is installed and, for anything missing, how to install it. It exits non-zero only when a required tool (uv, git, terraform or Claude Code) is missing.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rhawk117/cc-terraform-harness/main/precheck.sh | bash
+```
+
 > [!NOTE]
 > A missing tool does not stop the plugin from installing. Without uv, each hook prints `uv is not on PATH` and skips, and the MCP server cannot start. When `terraform`, `tflint` or `terraform-ls` is missing, the session-start hook names it, and the checks that need it are skipped.
 
