@@ -17,6 +17,7 @@ skills:
   - review-module
   - explain-plan
 model: sonnet
+color: purple
 ---
 
 <role>

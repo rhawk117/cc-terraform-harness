@@ -37,6 +37,12 @@ AGENT_SKILLS = {
     'terraform-advisor': ['review-module', 'explain-plan'],
     'terraform-edit-reviewer': ['review-module'],
 }
+AGENT_COLORS = {
+    'terraform-author': 'green',
+    'terraform-researcher': 'cyan',
+    'terraform-advisor': 'purple',
+    'terraform-edit-reviewer': 'yellow',
+}
 IGNORED_PLUGIN_KEYS = (
     'hooks',
     'mcpServers',
@@ -78,6 +84,11 @@ class TestPluginAgents:
     def test_agent_runs_on_its_model(self, claude_plugin: PluginInventory, agent: str) -> None:
         frontmatter = claude_plugin.subagents.given_frontmatters()[agent]
         assert frontmatter['model'] == AGENT_MODELS[agent]
+
+    @agent_cases()
+    def test_agent_shows_its_role_color(self, claude_plugin: PluginInventory, agent: str) -> None:
+        frontmatter = claude_plugin.subagents.given_frontmatters()[agent]
+        assert frontmatter['color'] == AGENT_COLORS[agent]
 
     @agent_cases()
     def test_agent_carries_no_key_a_plugin_agent_ignores(

@@ -13,6 +13,7 @@ description: >-
   true here", not "what should we do".
 tools: Read, Grep, Glob, Bash, mcp__plugin_terraform-harness_terraform__describe, mcp__plugin_terraform-harness_terraform__plan_digest, mcp__plugin_terraform-harness_terraform__diagnostics, mcp__plugin_terraform-harness_terraform__change_impact
 model: haiku
+color: cyan
 ---
 
 <role>

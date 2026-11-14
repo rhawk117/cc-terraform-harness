@@ -12,6 +12,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob, mcp__plugin_terraform-harness_terraf
 skills:
   - writing-terraform
 model: sonnet
+color: green
 ---
 
 <role>
