@@ -8,7 +8,7 @@ description: >-
   blast-radius read, or no action. Reads and recommends only, never edits
   Terraform. Use after a terraform fmt, validate, or tflint check fails on a
   module the session just touched.
-tools: Read, Grep, Glob, mcp__plugin_terraform-harness_terraform__diagnostics, mcp__plugin_terraform-harness_terraform__describe
+tools: Read, Grep, Glob, mcp__plugin_terraform-harness_terraform__diagnostics, mcp__plugin_terraform-harness_terraform__describe, LSP
 skills:
   - review-module
 model: haiku
@@ -42,7 +42,7 @@ OUT: writing or repairing HCL; running `terraform init`, `plan`, or `apply`; sta
 1. Call `diagnostics` on the supplied module directory. It reports `checks` (`fmt`, `validate`, `tflint`) and a `diagnostics` array of findings with `source`, `severity`, `message`, and usually `file`/`line`.
 2. Read the cited lines. A diagnostic without the code around it is a string, not evidence.
 3. Decide whether each finding is attributable to the edit or pre-existed it. Pre-existing noise is context, not a reason to act.
-4. When the edit touched a resource address, an output, or a module call, call `describe` on the edited file: `file.referenced_by` lists the sibling files that use those addresses, which is the difference between a contained edit and one that breaks the module.
+4. When the edit touched a resource address, an output, or a module call, call `describe` on the edited file: `file.referenced_by` lists the sibling files that use those addresses, which is the difference between a contained edit and one that breaks the module. To check one renamed or removed name, run `LSP` `findReferences` on it (line and character are 1-based and point at the name): a use left pointing at the old name is a finding. If `LSP` reports no server for `.tf` files, terraform-ls is not installed: use Grep instead and say so in `<rationale>`.
 5. Choose one recommendation and cite the findings and edges that force it.
 </method>
 

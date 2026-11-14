@@ -22,7 +22,7 @@ The plugin installs as `terraform-harness` from the [rygentic-harness](https://g
 | `git` | The `change_impact` tool and the trace-change-impact skill read the git diff. |
 | [`terraform`](https://developer.hashicorp.com/terraform/install) on your `PATH` | The hooks and the MCP server run `terraform fmt`, `validate` and `providers schema`. |
 | [`tflint`](https://github.com/terraform-linters/tflint#installation) on your `PATH` | The read hook and the `diagnostics` tool lint modules with it. |
-| [`terraform-ls`](https://github.com/hashicorp/terraform-ls/blob/main/docs/installation.md) on your `PATH` | It is the language server for `.tf` and `.tfvars` files. |
+| [`terraform-ls`](https://github.com/hashicorp/terraform-ls/blob/main/docs/installation.md) on your `PATH` | It is the language server for `.tf` and `.tfvars` files, and the four subagents query it through the `LSP` tool. Without it they fall back to Grep. |
 | Network access | uv downloads packages, and Python if needed, the first time it builds each environment. |
 
 The plugin does not require particular tool versions. It was developed against terraform 1.15.8, tflint 0.64.0 and terraform-ls 0.39.0.

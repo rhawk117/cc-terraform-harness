@@ -125,7 +125,7 @@ check_optional_tools() {
     'curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash  (see https://github.com/terraform-linters/tflint#installation)' \
     'brew install tflint'
   check_tool optional terraform-ls --version \
-    'The language server for .tf and .tfvars files.' \
+    'The language server for .tf and .tfvars files; the subagents fall back to Grep without it.' \
     'https://github.com/hashicorp/terraform-ls/blob/main/docs/installation.md' \
     'brew install hashicorp/tap/terraform-ls'
 }
