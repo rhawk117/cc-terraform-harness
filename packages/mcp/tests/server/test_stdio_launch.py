@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 
+import anyio
 import pytest
 from mcp import Client, StdioServerParameters
 
@@ -30,10 +31,24 @@ class TestStdioLaunch:
         async with Client(launch) as client:
             tools = await client.list_tools()
 
-        assert [tool.name for tool in tools.tools] == [
+        assert {tool.name for tool in tools.tools} == {
             'diagnostics',
             'plan_digest',
             'describe',
             'provider_schema',
             'change_impact',
-        ]
+        }
+
+    async def test_missing_project_root_exits_with_the_settings_error(
+        self, project_root: Path
+    ) -> None:
+        missing = project_root.joinpath('missing')
+        command = ['uv', 'run', '--project', 'packages/mcp', 'tf-harness-mcp']
+        launched = await anyio.run_process(
+            [*command, '--project-root', str(missing)],
+            cwd=REPOSITORY_ROOT,
+            check=False,
+        )
+
+        assert launched.returncode != 0
+        assert b'project_root' in launched.stderr

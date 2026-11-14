@@ -164,16 +164,6 @@ class DescribeTool:
         raise DescribeTargetError(path=path)
 
     async def describe(self, path: containment.ProjectPath) -> dict[str, Any]:
-        """Summarize one Terraform module, `.tf` file or `.tfvars` file without changing anything.
-
-        For a module directory or a `.tf` file, lists the variables (type, whether a default
-        exists, description, sensitive), outputs, resources, data sources, module calls with
-        their sources and required providers with source and version constraint, each with its
-        file and line range. For a `.tfvars` file, lists the variables it assigns, split into
-        those declared by the module in the same directory and those that are not. Files that
-        cannot be read or do not parse are reported under problems. The path is relative to the
-        project root or absolute inside it.
-        """
         resolved = containment.resolve_project_path(self.root, path)
         return self.budget.apply(asdict(self.describe_target(resolved)))
 

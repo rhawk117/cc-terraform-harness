@@ -4,15 +4,13 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 from tf_harness_mcp.runner.process import create_command_runner
-from tf_harness_mcp.server import create_server
 from tf_harness_mcp.tools.tests.results import read_tool_text
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from mcp import Client
-    from mcp.server.mcpserver import MCPServer
-    from tf_harness_mcp.settings import Settings
+    from tf_harness_mcp.runner.domain import CommandRunner
 
 GIT = shutil.which('git') or 'git'
 GIT_CONFIG = (
@@ -111,8 +109,8 @@ async def read_impact(client: Client, path: Path, **arguments: str) -> dict[str,
 @pytest.mark.skipif(shutil.which('git') is None, reason='git is not on PATH')
 class TestChangeImpactWithGit:
     @pytest.fixture
-    def server(self, settings: Settings) -> MCPServer:
-        return create_server(settings, create_command_runner())
+    def command_runner(self) -> CommandRunner:
+        return create_command_runner()
 
     @pytest.fixture
     async def shared(self, project_root: Path) -> Path:
