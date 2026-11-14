@@ -17,10 +17,10 @@ defaults:
 
 jobs:
   labeler:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     name: 📎 Label Pull Request
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     permissions:
       contents: read
       pull-requests: write
@@ -47,43 +47,47 @@ jobs:
           NEW_LABELS: ${{ steps.apply-labels.outputs.new-labels }}
           ALL_LABELS: ${{ steps.apply-labels.outputs.all-labels }}
 
-  security-scanner:
-    name: Supply Chain Integrity
-    uses: ./.github/workflows/supply-chain-check.yml
+  quality-checks:
+    name: 🧹 Quality Checks (prek)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       contents: read
       actions: read
       security-events: write
-
-  quality-checks:
-    name: Quality Checks (Pre-Commit)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: read
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+      - name: Install UV
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: ${{ vars.UV_VERSION }}
           cache-dependency-glob: uv.lock
 
+      - name: 🔒 Supply Chain Audit
+        uses: ./.github/actions/pysentry
+        with:
+          uv-version: ${{ vars.UV_VERSION }}
+          upload-sarif: ${{ github.event.repository.fork != true && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.CODE_SCANNING == 'true' }}
+
       - name: Synchronize Dependencies
         run: uv sync --locked --all-packages --group check --group test
 
-      - name: Run Pre-Commit
-        run: uv run --no-sync pre-commit run --all-files
+      - name: Run Prek Hooks
+        background: true
+        run: uv run --no-sync prek run --all-files --show-diff-on-failure
 
-      - name: Run Test Suite (Tier 1)
-        run: uv run --no-sync pytest -q -m "unit or smoke or agents"
+      - name: Run Test Suite (Unit Tier)
+        background: true
+        uses: ./.github/actions/test-suite
+        with:
+          markers: not integration
 
   integration-checks:
-    name: Integration Tests
+    name: 🧪 Integration Tests
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -94,25 +98,29 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+      - name: Install UV
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: ${{ vars.UV_VERSION }}
           cache-dependency-glob: uv.lock
 
-      - name: Synchronize Dependencies
-        run: uv sync --locked --all-packages --group check --group test
-
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ vars.NODE_VERSION }}
 
+      - name: Synchronize Dependencies
+        run: uv sync --locked --all-packages --group check --group test
+
       - name: Validate Claude Code Plugin
+        background: true
         run: bash ./.github/scripts/cc-plugin-checker.sh
 
       - name: Run Integration Tests
-        run: uv run --no-sync pytest -q -m "integration"
+        background: true
+        uses: ./.github/actions/test-suite
+        with:
+          markers: integration
 
   workflow-narrator:
     name: 🔉 Workflow Narrator
@@ -122,106 +130,21 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+      actions: read
       pull-requests: write
     env:
-      NEEDS_CONTEXT: ${{ toJson(needs) }}
-      BRANCH_NAME: ${{ github.head_ref }}
+      NARRATOR_JOB_NAME: 🔉 Workflow Narrator
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+
       - name: Publish Workflow Summary
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{ github.token }}
           script: |
-            const pr = context.payload.pull_request;
-
-            if (!pr) {
-              core.setFailed('Workflow Narrator requires a pull request.');
-              return;
-            }
-
-            const { owner, repo } = context.repo;
-            const marker = '<!-- gha:plugin-ci:workflow-summary -->';
-            const workflowUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${context.runId}`;
-            const needs = JSON.parse(process.env.NEEDS_CONTEXT);
-
-            const icons = new Map([
-              ['success', ':heavy_check_mark:'],
-              ['failure', ':x:'],
-              ['cancelled', ':no_entry:'],
-              ['skipped', ':fast_forward:'],
-            ]);
-
-            const lines = [
-              marker,
-              `## Workflow Narrator - (${pr.head.ref})`,
-              '',
-              '| Job | Result | Logs |',
-              '| --- | --- | --- |',
-            ];
-
-            let succeeded = true;
-
-            for (const [name, { result }] of Object.entries(needs)) {
-              const icon = icons.get(result) ?? ':grey_question:';
-              const title = result.charAt(0).toUpperCase() + result.slice(1);
-              const logs = `[View Logs](${workflowUrl})`;
-
-              lines.push(`| ${name} | ${icon} ${title} | ${logs} |`);
-
-              if (result === 'success' || (name === 'labeler' && result === 'skipped')) {
-                continue;
-              }
-
-              succeeded = false;
-            }
-
-            lines.push('');
-
-            if (succeeded) {
-              lines.push(':heavy_check_mark: Workflow Succeeded');
-            } else {
-              lines.push(':warning: Workflow Did Not Succeed');
-            }
-
-            const body = lines.join('\n');
-            await core.summary.addRaw(body, true).write();
-
-            if (!succeeded) {
-              core.setFailed('One or more required jobs did not succeed.');
-            }
-
-            if (pr.head.repo?.full_name !== `${owner}/${repo}`) {
-              return;
-            }
-
-            const comments = await github.paginate(github.rest.issues.listComments, {
-              owner,
-              repo,
-              issue_number: pr.number,
-              per_page: 100,
-            });
-
-            const existing = comments.find(({ user, body }) => {
-              if (user?.login !== 'github-actions[bot]') {
-                return false;
-              }
-
-              return body?.startsWith(marker);
-            });
-
-            if (!existing) {
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: pr.number,
-                body,
-              });
-              return;
-            }
-
-            await github.rest.issues.updateComment({
-              owner,
-              repo,
-              comment_id: existing.id,
-              body,
-            });
+            const { default: narrate } = await import(`${process.env.GITHUB_WORKSPACE}/.github/scripts/narrator.mjs`);
+            await narrate({ github, context, core });
