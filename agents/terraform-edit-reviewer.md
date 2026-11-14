@@ -16,6 +16,7 @@ color: yellow
 effort: medium
 maxTurns: 12
 disallowedTools: Write, Edit, NotebookEdit
+omitClaudeMd: true
 ---
 
 <role>
