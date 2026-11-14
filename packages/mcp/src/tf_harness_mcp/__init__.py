@@ -1,5 +1,5 @@
 """Terraform harness MCP server."""
 
-from tf_harness_mcp.server import main
+from tf_harness_mcp.cli import main
 
 __all__ = ['main']

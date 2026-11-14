@@ -222,19 +222,6 @@ class ProviderSchemaTool:
         kind: SchemaKind,
         block: str = '',
     ) -> dict[str, Any]:
-        """Read one level of a provider, resource or data source schema without changing anything.
-
-        Give the module directory, the type (a resource or data source type such as aws_instance,
-        or the provider's local name such as aws when kind is provider) and the kind (resource,
-        data_source or provider). The provider comes from the module's required_providers, or is
-        hashicorp/<prefix> when undeclared. Returns the locked provider version beside the
-        configuration's version constraint, the level's attributes (type, required, optional,
-        computed, sensitive, deprecated, description) and one summary per nested block (nesting
-        mode, min and max items, attribute and block counts). Pass block as a dotted path such
-        as ebs_block_device or a.b to read a nested block or nested attribute instead of the top
-        level. Needs the module initialized, with a .terraform.lock.hcl entry for the provider.
-        The path is relative to the project root or absolute inside it.
-        """
         module = containment.resolve_project_path(self.root, path)
         result = await self.read_level(
             LevelRequest(module=module, kind=kind, type_name=type, block=block)
