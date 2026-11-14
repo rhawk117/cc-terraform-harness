@@ -1,0 +1,97 @@
+{
+  "base_commit": "0000000000000000000000000000000000000000",
+  "blocks": [],
+  "interface": [
+    {
+      "module": "modules/app-db",
+      "kind": "variable",
+      "name": "identifier",
+      "change": "removed",
+      "before": null,
+      "after": null
+    },
+    {
+      "module": "modules/app-db",
+      "kind": "variable",
+      "name": "instance_class",
+      "change": "removed",
+      "before": null,
+      "after": null
+    },
+    {
+      "module": "modules/app-db",
+      "kind": "variable",
+      "name": "allocated_storage",
+      "change": "removed",
+      "before": null,
+      "after": null
+    },
+    {
+      "module": "modules/app-db",
+      "kind": "variable",
+      "name": "engine_version",
+      "change": "removed",
+      "before": null,
+      "after": null
+    },
+    {
+      "module": "modules/app-db",
+      "kind": "variable",
+      "name": "db_name",
+      "change": "removed",
+      "before": null,
+      "after": null
+    },
+    {
+      "module": "modules/app-db",
+      "kind": "variable",
+      "name": "backup_retention_period",
+      "change": "removed",
+      "before": null,
+      "after": null
+    },
+    {
+      "module": "modules/app-db",
+      "kind": "variable",
+      "name": "multi_az",
+      "change": "removed",
+      "before": null,
+      "after": null
+    },
+    {
+      "module": "modules/app-db",
+      "kind": "variable",
+      "name": "subnet_ids",
+      "change": "removed",
+      "before": null,
+      "after": null
+    },
+    {
+      "module": "modules/app-db",
+      "kind": "variable",
+      "name": "database",
+      "change": "added",
+      "before": null,
+      "after": null
+    }
+  ],
+  "roots": [
+    {
+      "root": "envs/prod",
+      "module": "modules/app-db",
+      "path": [
+        "envs/prod",
+        "modules/app-db"
+      ]
+    },
+    {
+      "root": "envs/staging",
+      "module": "modules/app-db",
+      "path": [
+        "envs/staging",
+        "modules/app-db"
+      ]
+    }
+  ],
+  "problems": []
+}

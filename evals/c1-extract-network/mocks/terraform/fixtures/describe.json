@@ -1,0 +1,201 @@
+{
+  "path": "envs/prod",
+  "kind": "module",
+  "variables": [
+    {
+      "name": "vpc_cidr",
+      "type": "string",
+      "has_default": false,
+      "description": "CIDR block of the production VPC.",
+      "sensitive": false,
+      "location": {
+        "file": "envs/prod/variables.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    },
+    {
+      "name": "public_subnet_cidr",
+      "type": "string",
+      "has_default": false,
+      "description": "CIDR block of the public subnet that holds the NAT gateway.",
+      "sensitive": false,
+      "location": {
+        "file": "envs/prod/variables.tf",
+        "start_line": 6,
+        "end_line": 9
+      }
+    },
+    {
+      "name": "private_subnet_cidrs",
+      "type": "list(string)",
+      "has_default": false,
+      "description": "CIDR blocks of the private subnets, one per availability zone, in zone order.",
+      "sensitive": false,
+      "location": {
+        "file": "envs/prod/variables.tf",
+        "start_line": 11,
+        "end_line": 14
+      }
+    },
+    {
+      "name": "availability_zones",
+      "type": "list(string)",
+      "has_default": false,
+      "description": "Availability zones for the private subnets, in the same order as private_subnet_cidrs.",
+      "sensitive": false,
+      "location": {
+        "file": "envs/prod/variables.tf",
+        "start_line": 16,
+        "end_line": 19
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "vpc_id",
+      "description": "ID of the production VPC.",
+      "sensitive": false,
+      "location": {
+        "file": "envs/prod/outputs.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    },
+    {
+      "name": "private_subnet_ids",
+      "description": "IDs of the private subnets, in availability zone order.",
+      "sensitive": false,
+      "location": {
+        "file": "envs/prod/outputs.tf",
+        "start_line": 6,
+        "end_line": 9
+      }
+    }
+  ],
+  "resources": [
+    {
+      "type": "aws_security_group",
+      "name": "app",
+      "location": {
+        "file": "envs/prod/app.tf",
+        "start_line": 1,
+        "end_line": 5
+      }
+    },
+    {
+      "type": "aws_vpc_security_group_egress_rule",
+      "name": "app_https",
+      "location": {
+        "file": "envs/prod/app.tf",
+        "start_line": 7,
+        "end_line": 14
+      }
+    },
+    {
+      "type": "aws_vpc",
+      "name": "main",
+      "location": {
+        "file": "envs/prod/main.tf",
+        "start_line": 1,
+        "end_line": 9
+      }
+    },
+    {
+      "type": "aws_internet_gateway",
+      "name": "main",
+      "location": {
+        "file": "envs/prod/main.tf",
+        "start_line": 11,
+        "end_line": 17
+      }
+    },
+    {
+      "type": "aws_subnet",
+      "name": "public",
+      "location": {
+        "file": "envs/prod/main.tf",
+        "start_line": 19,
+        "end_line": 27
+      }
+    },
+    {
+      "type": "aws_subnet",
+      "name": "private",
+      "location": {
+        "file": "envs/prod/main.tf",
+        "start_line": 29,
+        "end_line": 39
+      }
+    },
+    {
+      "type": "aws_eip",
+      "name": "nat",
+      "location": {
+        "file": "envs/prod/main.tf",
+        "start_line": 41,
+        "end_line": 47
+      }
+    },
+    {
+      "type": "aws_nat_gateway",
+      "name": "main",
+      "location": {
+        "file": "envs/prod/main.tf",
+        "start_line": 49,
+        "end_line": 58
+      }
+    },
+    {
+      "type": "aws_route_table",
+      "name": "public",
+      "location": {
+        "file": "envs/prod/main.tf",
+        "start_line": 60,
+        "end_line": 67
+      }
+    },
+    {
+      "type": "aws_route_table_association",
+      "name": "public",
+      "location": {
+        "file": "envs/prod/main.tf",
+        "start_line": 69,
+        "end_line": 72
+      }
+    },
+    {
+      "type": "aws_route_table",
+      "name": "private",
+      "location": {
+        "file": "envs/prod/main.tf",
+        "start_line": 74,
+        "end_line": 81
+      }
+    },
+    {
+      "type": "aws_route_table_association",
+      "name": "private",
+      "location": {
+        "file": "envs/prod/main.tf",
+        "start_line": 83,
+        "end_line": 88
+      }
+    }
+  ],
+  "data_sources": [],
+  "module_calls": [],
+  "required_providers": [
+    {
+      "local_name": "aws",
+      "source": "hashicorp/aws",
+      "version": "~> 6.0",
+      "location": {
+        "file": "envs/prod/versions.tf",
+        "start_line": 5,
+        "end_line": 8
+      }
+    }
+  ],
+  "problems": []
+}

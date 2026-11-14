@@ -13,10 +13,11 @@ description: >-
 when_to_use: >-
   Requests such as "add an S3 bucket for the logs", "create a Postgres RDS
   instance", "rename aws_db_instance.main", "convert this count to for_each",
-  "the role gets AccessDenied on DynamoDB", "fix this validate error", "write a
-  module for", "change the table name". Not for reviewing or grading existing
-  Terraform (review-module), explaining a plan (explain-plan) or only running
-  fmt, validate and tflint (check-module).
+  "the role gets AccessDenied on DynamoDB", "fix this validate error", "change
+  the table name". Not for building a reusable module or extracting code into
+  one (create-module), reviewing or grading existing Terraform (review-module),
+  explaining a plan (explain-plan) or only running fmt, validate and tflint
+  (check-module).
 user-invocable: false
 paths:
   - "**/*.tf"

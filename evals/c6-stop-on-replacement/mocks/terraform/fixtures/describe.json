@@ -1,0 +1,39 @@
+{
+  "path": "envs/prod/data.tf",
+  "kind": "file",
+  "variables": [],
+  "outputs": [],
+  "resources": [
+    {
+      "type": "aws_db_subnet_group",
+      "name": "orders",
+      "location": {
+        "file": "envs/prod/data.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    },
+    {
+      "type": "aws_db_instance",
+      "name": "orders",
+      "location": {
+        "file": "envs/prod/data.tf",
+        "start_line": 6,
+        "end_line": 25
+      }
+    },
+    {
+      "type": "aws_dynamodb_table",
+      "name": "ledger",
+      "location": {
+        "file": "envs/prod/data.tf",
+        "start_line": 27,
+        "end_line": 55
+      }
+    }
+  ],
+  "data_sources": [],
+  "module_calls": [],
+  "required_providers": [],
+  "problems": []
+}
