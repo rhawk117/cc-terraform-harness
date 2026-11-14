@@ -133,6 +133,11 @@ class TestPluginAgents:
         assert {tool.removeprefix(TOOL_PREFIX) for tool in tools} <= MCP_TOOLS
         assert all(tool.startswith(TOOL_PREFIX) for tool in tools)
 
+    @agent_cases()
+    def test_agent_can_query_terraform_ls(self, claude_plugin: PluginInventory, agent: str) -> None:
+        frontmatter = claude_plugin.subagents.given_frontmatters()[agent]
+        assert 'LSP' in agent_tools(frontmatter)
+
     def test_terraform_author_has_all_five_mcp_tools(self, claude_plugin: PluginInventory) -> None:
         frontmatter = claude_plugin.subagents.given_frontmatters()['terraform-author']
         tools = {tool.removeprefix(TOOL_PREFIX) for tool in mcp_tool_names(frontmatter)}

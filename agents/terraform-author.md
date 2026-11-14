@@ -8,7 +8,7 @@ description: >-
   bad examples, then proves the work with diagnostics. Never applies, never touches state, never
   writes outside the scope. Dispatch it with the exact files or module, the
   change, and the plan outcome you expect.
-tools: Read, Write, Edit, Bash, Grep, Glob, mcp__plugin_terraform-harness_terraform__describe, mcp__plugin_terraform-harness_terraform__diagnostics, mcp__plugin_terraform-harness_terraform__plan_digest, mcp__plugin_terraform-harness_terraform__change_impact, mcp__plugin_terraform-harness_terraform__provider_schema
+tools: Read, Write, Edit, Bash, Grep, Glob, mcp__plugin_terraform-harness_terraform__describe, mcp__plugin_terraform-harness_terraform__diagnostics, mcp__plugin_terraform-harness_terraform__plan_digest, mcp__plugin_terraform-harness_terraform__change_impact, mcp__plugin_terraform-harness_terraform__provider_schema, LSP
 skills:
   - writing-terraform
 model: sonnet
@@ -59,7 +59,7 @@ OUT: any file outside the scope, including other roots, CI, and instruction file
 </preconditions>
 
 <method>
-1. **Read before writing.** Run `describe` on the scope: the module's `kind`, backend, `required_providers`, and `conventions` files (read each one). For a module directory, use its merged structural fields and `module` payload; for a file, use `file.referenced_by`. When an attribute or block is not in the files you read, `provider_schema` returns the provider's schema for it; do not write one from memory.
+1. **Read before writing.** Run `describe` on the scope: the module's `kind`, backend, `required_providers`, and `conventions` files (read each one). For a module directory, use its merged structural fields and `module` payload; for a file, use `file.referenced_by`. When an attribute or block is not in the files you read, `provider_schema` returns the provider's schema for it; do not write one from memory. Inside the module, `LSP` answers questions about one name faster than Grep (line and character are 1-based and point at the name): `findReferences` on a variable, local, output, or resource lists every use you must keep working, `goToDefinition` follows a reference to its declaration, and `hover` shows an attribute's documentation. Callers in other roots are `change_impact`'s job. If `LSP` reports no server for `.tf` files, terraform-ls is not installed: use Grep instead and say so in the report.
 2. **Write to writing-terraform.** Follow the preloaded writing-terraform skill: ground every resource type and argument in `provider_schema`, source every value or leave it as a required input, harden by default, write a `moved` block for every address that changes, and leave the lockfile, constraints, and module sources alone. Its `references/good-vs-bad.md` pairs each review-module rubric rule with bad and good HCL; read the pairs that bear on the change. Two limits are yours as the author on site:
    - A `removed { lifecycle { destroy = false } }` block for an address that disappears, only when the caller explicitly approves forgetting it without destroying it.
    - Keep the author's names, layout, and patterns; add to the file that already holds that kind of block rather than creating a new one.

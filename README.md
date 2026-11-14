@@ -22,10 +22,16 @@ The plugin installs as `terraform-harness` from the [rygentic-harness](https://g
 | `git` | The `change_impact` tool and the trace-change-impact skill read the git diff. |
 | [`terraform`](https://developer.hashicorp.com/terraform/install) on your `PATH` | The hooks and the MCP server run `terraform fmt`, `validate` and `providers schema`. |
 | [`tflint`](https://github.com/terraform-linters/tflint#installation) on your `PATH` | The read hook and the `diagnostics` tool lint modules with it. |
-| [`terraform-ls`](https://github.com/hashicorp/terraform-ls/blob/main/docs/installation.md) on your `PATH` | It is the language server for `.tf` and `.tfvars` files. |
+| [`terraform-ls`](https://github.com/hashicorp/terraform-ls/blob/main/docs/installation.md) on your `PATH` | It is the language server for `.tf` and `.tfvars` files, and the four subagents query it through the `LSP` tool. Without it they fall back to Grep. |
 | Network access | uv downloads packages, and Python if needed, the first time it builds each environment. |
 
 The plugin does not require particular tool versions. It was developed against terraform 1.15.8, tflint 0.64.0 and terraform-ls 0.39.0.
+
+To check your machine, run [`precheck.sh`](precheck.sh). It lists what is installed and, for anything missing, how to install it. It exits non-zero only when a required tool (uv, git, terraform or Claude Code) is missing.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rhawk117/cc-terraform-harness/main/precheck.sh | bash
+```
 
 > [!NOTE]
 > A missing tool does not stop the plugin from installing. Without uv, each hook prints `uv is not on PATH` and skips, and the MCP server cannot start. When `terraform`, `tflint` or `terraform-ls` is missing, the session-start hook names it, and the checks that need it are skipped.

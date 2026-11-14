@@ -11,7 +11,7 @@ description: >-
   dispatch several in parallel, one question each, and discard them once the
   report is back. Use before terraform-advisor when the question is "what is
   true here", not "what should we do".
-tools: Read, Grep, Glob, Bash, mcp__plugin_terraform-harness_terraform__describe, mcp__plugin_terraform-harness_terraform__plan_digest, mcp__plugin_terraform-harness_terraform__diagnostics, mcp__plugin_terraform-harness_terraform__change_impact
+tools: Read, Grep, Glob, Bash, mcp__plugin_terraform-harness_terraform__describe, mcp__plugin_terraform-harness_terraform__plan_digest, mcp__plugin_terraform-harness_terraform__diagnostics, mcp__plugin_terraform-harness_terraform__change_impact, LSP
 model: haiku
 color: cyan
 effort: low
@@ -51,6 +51,7 @@ OUT: recommending a fix or a course of action; grading the repository; editing, 
 Choose the tools the question needs; never run all of them by reflex.
 
 - A path, file, or module is the subject: `describe` first. It returns `kind`, `module_root`, `summary`, `warnings`, and `conventions`. A module directory also merges its structural fields and detailed `module` payload; a file returns `file.declares`, `file.reads`, and `file.referenced_by` edges naming every sibling file that uses those addresses. Read the cited lines before you cite them.
+- The question is where one name inside a module is declared or used: `LSP` on the name (line and character are 1-based and point at it). `goToDefinition` finds the declaration, `findReferences` lists every use, `documentSymbol` outlines a file, and `workspaceSymbol` finds a name by query. If `LSP` reports no server for `.tf` files, terraform-ls is not installed: use Grep instead and record that in `<unknown>`.
 - The question is which roots call a module, or what a changed variable, output, or module source reaches across roots: `change_impact`.
 - A plan artifact exists: `plan_digest` on it. Report `status` and `reason` first; `errored`, `incomplete`, `invalid`, and `unsupported_format` are the answer, not a footnote. Then `changes` with `raw_actions` and `forced_by`, `moves`, `imports`, `removals`, `unsupported_actions`, and `plan_flags`.
 - Plan is authorized for a named root and no artifact exists: `terraform -chdir=<root> plan -input=false -lock=false -out=<root>/.terraform-harness/scout.plan`, then `terraform -chdir=<root> show -json <root>/.terraform-harness/scout.plan > <root>/.terraform-harness/scout-plan.json`, then `plan_digest` on that file. `-lock=false` because a reconnaissance plan must not hold the state lock against the pipeline.
