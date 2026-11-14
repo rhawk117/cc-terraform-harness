@@ -13,6 +13,7 @@ skills:
   - review-module
 model: haiku
 color: yellow
+effort: medium
 ---
 
 <role>

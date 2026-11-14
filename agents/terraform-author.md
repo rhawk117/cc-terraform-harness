@@ -13,6 +13,7 @@ skills:
   - writing-terraform
 model: sonnet
 color: green
+effort: high
 ---
 
 <role>

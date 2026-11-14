@@ -43,6 +43,12 @@ AGENT_COLORS = {
     'terraform-advisor': 'purple',
     'terraform-edit-reviewer': 'yellow',
 }
+AGENT_EFFORT = {
+    'terraform-author': 'high',
+    'terraform-researcher': 'low',
+    'terraform-advisor': 'xhigh',
+    'terraform-edit-reviewer': 'medium',
+}
 IGNORED_PLUGIN_KEYS = (
     'hooks',
     'mcpServers',
@@ -84,6 +90,13 @@ class TestPluginAgents:
     def test_agent_runs_on_its_model(self, claude_plugin: PluginInventory, agent: str) -> None:
         frontmatter = claude_plugin.subagents.given_frontmatters()[agent]
         assert frontmatter['model'] == AGENT_MODELS[agent]
+
+    @agent_cases()
+    def test_agent_reasons_at_its_role_effort(
+        self, claude_plugin: PluginInventory, agent: str
+    ) -> None:
+        frontmatter = claude_plugin.subagents.given_frontmatters()[agent]
+        assert frontmatter['effort'] == AGENT_EFFORT[agent]
 
     @agent_cases()
     def test_agent_shows_its_role_color(self, claude_plugin: PluginInventory, agent: str) -> None:

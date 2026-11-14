@@ -18,6 +18,7 @@ skills:
   - explain-plan
 model: sonnet
 color: purple
+effort: xhigh
 ---
 
 <role>
