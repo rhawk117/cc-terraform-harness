@@ -15,8 +15,8 @@ setup_environment() {
 main() {
   setup_environment
 
-  log::step "installing pre-commit hook"
-  uv run pre-commit install --install-hooks
+  log::step "installing prek git hooks"
+  uv run prek install --prepare-hooks
   log::step_end
 
   log::step "syncing dependency groups"

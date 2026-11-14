@@ -2,9 +2,9 @@ SHELL := /usr/bin/env bash
 UV ?= uv
 .DEFAULT_GOAL := help
 
-.PHONY: help setup sync format lint quality pre-commit test check
+.PHONY: help setup sync format lint quality pre-commit test test.end-to-end check
 help: ## Show available targets
-	@awk 'BEGIN {FS = ":.*## "; printf "Usage: make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*## "; printf "Usage: make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_.-]+:.*## / {printf "  %-16s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 format.markdown: ## Run mdformat
 	$(UV) run mdformat && $(UV) run mdformat --check .
@@ -22,18 +22,23 @@ setup: ## Setup Developer Environment
 sync: ## Sync all workspace packages and dependency groups
 	$(UV) sync --all-packages --all-groups
 
-format: ## Run the formatters
-	bash ./scripts/format.sh
+format: ## Run the prek format hooks on all files
+	$(UV) run prek run --all-files --group format
 
-lint: ## Run the linters
-	bash ./scripts/lint.sh
+lint: ## Run the prek lint hooks on all files
+	$(UV) run prek run --all-files --group lint
 
-test: ## Run pytest with coverage
-	$(UV) run pytest
+test: ## Run the unit, agents and smoke tests
+	$(UV) run pytest -q -m "unit or agents or smoke"
 
-quality: format lint test ## Run the formatters, the linters and the tests
+test.end-to-end: ## Run the end-to-end tests
+	$(UV) run pytest -q -m e2e
 
-pre-commit: ## Run pre-commit on all files
-	$(UV) run pre-commit run --all-files
+quality: ## Run every prek hook on all files, then the tests CI runs
+	$(UV) run prek run --all-files
+	$(UV) run pytest -q -m "not integration"
+
+pre-commit: ## Run every prek hook on all files
+	$(UV) run prek run --all-files
 
 check: lint test ## Run lint then test

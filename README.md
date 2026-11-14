@@ -127,7 +127,7 @@ The plugin launches `tf-harness-mcp` as the `terraform` MCP server, rooted at th
 
 ## Development
 
-You need the prerequisites above, plus `make` and `bash`. uv installs the Python tooling (ruff, ty, pytest, pre-commit, shellcheck, shfmt and mdformat), and the `claude` CLI runs `claude plugin validate` and the evals.
+You need the prerequisites above, plus `make` and `bash`. uv installs the Python tooling (ruff, ty, pytest, prek, shellcheck, shfmt and mdformat), and the `claude` CLI runs `claude plugin validate` and the evals.
 
 ```sh
 git clone https://github.com/rhawk117/cc-terraform-harness.git
@@ -135,20 +135,20 @@ cd cc-terraform-harness
 make setup
 ```
 
-`make setup` installs the pre-commit git hook and syncs every workspace package and dependency group. To try your working copy instead of the installed release, start Claude Code with `claude --plugin-dir .`.
+`make setup` installs the prek git hooks and syncs every workspace package and dependency group. To try your working copy instead of the installed release, start Claude Code with `claude --plugin-dir .`.
 
 | Command | What it runs |
 | --- | --- |
 | `make sync` | Syncs the workspace packages and dependency groups. |
-| `make format` | The formatters. |
-| `make lint` | ruff check, ty, shellcheck, shfmt and mdformat, without fixing anything. |
+| `make format` | The prek `format` hook group on all files (hygiene fixers, uv-lock, ruff fix and format, shfmt, mdformat). |
+| `make lint` | The prek `lint` hook group on all files (hygiene checks, ruff check, ty, shellcheck), without fixing anything. |
 | `make typecheck` | ty alone. |
-| `make test` | pytest with coverage, over `tests/` and each package's tests. |
+| `make test` | pytest with coverage on the `unit`, `agents` and `smoke` markers. |
 | `make check` | lint, then test. |
-| `make pre-commit` | Every pre-commit hook on all files, including the hygiene fixers and uv-lock. |
-| `make quality` | format, lint and test. |
+| `make pre-commit` | Every prek hook on all files. |
+| `make quality` | Every prek hook on all files, then pytest on every test not marked `integration`. |
 
-CI's quality job runs the pre-commit hooks on all files, then the tests. To match it before you open a pull request, run `make pre-commit`, then `make test`. `make check` is faster, but it skips the hygiene and uv-lock hooks, so it can pass where CI fails. Tests that need `terraform` or `tflint` are skipped when the tool is not on your `PATH`.
+CI's quality job runs every prek hook on all files, then the tests not marked `integration`; a separate job runs the `integration` tests. To match the quality job before you open a pull request, run `make quality`. `make check` is faster, but it runs only the lint group, so it can pass where CI fails. Tests that need `terraform` or `tflint` are skipped when the tool is not on your `PATH`.
 
 ### Layout
 
