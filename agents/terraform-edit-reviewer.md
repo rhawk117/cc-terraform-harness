@@ -14,6 +14,7 @@ skills:
 model: haiku
 color: yellow
 effort: medium
+maxTurns: 12
 ---
 
 <role>

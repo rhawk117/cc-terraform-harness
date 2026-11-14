@@ -15,6 +15,7 @@ tools: Read, Grep, Glob, Bash, mcp__plugin_terraform-harness_terraform__describe
 model: haiku
 color: cyan
 effort: low
+maxTurns: 20
 ---
 
 <role>

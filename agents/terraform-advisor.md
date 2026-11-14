@@ -19,6 +19,7 @@ skills:
 model: sonnet
 color: purple
 effort: xhigh
+maxTurns: 25
 ---
 
 <role>

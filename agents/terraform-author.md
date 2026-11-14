@@ -14,6 +14,7 @@ skills:
 model: sonnet
 color: green
 effort: high
+maxTurns: 40
 ---
 
 <role>

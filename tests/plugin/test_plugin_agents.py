@@ -49,6 +49,12 @@ AGENT_EFFORT = {
     'terraform-advisor': 'xhigh',
     'terraform-edit-reviewer': 'medium',
 }
+AGENT_MAX_TURNS = {
+    'terraform-author': 40,
+    'terraform-researcher': 20,
+    'terraform-advisor': 25,
+    'terraform-edit-reviewer': 12,
+}
 IGNORED_PLUGIN_KEYS = (
     'hooks',
     'mcpServers',
@@ -97,6 +103,11 @@ class TestPluginAgents:
     ) -> None:
         frontmatter = claude_plugin.subagents.given_frontmatters()[agent]
         assert frontmatter['effort'] == AGENT_EFFORT[agent]
+
+    @agent_cases()
+    def test_agent_stops_at_its_turn_cap(self, claude_plugin: PluginInventory, agent: str) -> None:
+        frontmatter = claude_plugin.subagents.given_frontmatters()[agent]
+        assert frontmatter['maxTurns'] == AGENT_MAX_TURNS[agent]
 
     @agent_cases()
     def test_agent_shows_its_role_color(self, claude_plugin: PluginInventory, agent: str) -> None:
