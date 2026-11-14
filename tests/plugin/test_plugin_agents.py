@@ -140,6 +140,15 @@ class TestPluginAgents:
         }
         assert denied == dict.fromkeys(set(AGENT_MODELS) - {'terraform-author'}, DENIED_WRITE_TOOLS)
 
+    def test_only_terraform_researcher_runs_in_the_background(
+        self, claude_plugin: PluginInventory
+    ) -> None:
+        frontmatters = claude_plugin.subagents.given_frontmatters()
+        background = {
+            agent for agent, frontmatter in frontmatters.items() if frontmatter.get('background')
+        }
+        assert background == {'terraform-researcher'}
+
     @agent_cases()
     def test_agent_mcp_tools_are_terraform_harness_tools(
         self, claude_plugin: PluginInventory, agent: str

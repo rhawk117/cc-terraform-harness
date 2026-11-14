@@ -17,6 +17,7 @@ color: cyan
 effort: low
 maxTurns: 20
 disallowedTools: Write, Edit, NotebookEdit
+background: true
 ---
 
 <role>
