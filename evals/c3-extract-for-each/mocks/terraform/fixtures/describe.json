@@ -1,0 +1,49 @@
+{
+  "path": "envs/prod/iam.tf",
+  "kind": "file",
+  "variables": [],
+  "outputs": [],
+  "resources": [
+    {
+      "type": "aws_iam_role",
+      "name": "svc",
+      "location": {
+        "file": "envs/prod/iam.tf",
+        "start_line": 29,
+        "end_line": 34
+      }
+    },
+    {
+      "type": "aws_iam_role_policy",
+      "name": "svc",
+      "location": {
+        "file": "envs/prod/iam.tf",
+        "start_line": 45,
+        "end_line": 51
+      }
+    }
+  ],
+  "data_sources": [
+    {
+      "type": "aws_iam_policy_document",
+      "name": "ecs_tasks_assume",
+      "location": {
+        "file": "envs/prod/iam.tf",
+        "start_line": 18,
+        "end_line": 27
+      }
+    },
+    {
+      "type": "aws_iam_policy_document",
+      "name": "svc",
+      "location": {
+        "file": "envs/prod/iam.tf",
+        "start_line": 36,
+        "end_line": 43
+      }
+    }
+  ],
+  "module_calls": [],
+  "required_providers": [],
+  "problems": []
+}

@@ -1,0 +1,71 @@
+{
+  "path": "envs/prod",
+  "kind": "module",
+  "variables": [],
+  "outputs": [
+    {
+      "name": "orders_queue_url",
+      "description": "URL of the orders queue.",
+      "sensitive": false,
+      "location": {
+        "file": "envs/prod/outputs.tf",
+        "start_line": 1,
+        "end_line": 4
+      }
+    },
+    {
+      "name": "orders_queue_arn",
+      "description": "ARN of the orders queue, for IAM policies.",
+      "sensitive": false,
+      "location": {
+        "file": "envs/prod/outputs.tf",
+        "start_line": 6,
+        "end_line": 9
+      }
+    }
+  ],
+  "resources": [
+    {
+      "type": "aws_sqs_queue",
+      "name": "orders_dlq",
+      "location": {
+        "file": "envs/prod/queue.tf",
+        "start_line": 1,
+        "end_line": 5
+      }
+    },
+    {
+      "type": "aws_sqs_queue",
+      "name": "orders",
+      "location": {
+        "file": "envs/prod/queue.tf",
+        "start_line": 7,
+        "end_line": 17
+      }
+    },
+    {
+      "type": "aws_cloudwatch_metric_alarm",
+      "name": "orders_dlq_depth",
+      "location": {
+        "file": "envs/prod/queue.tf",
+        "start_line": 19,
+        "end_line": 33
+      }
+    }
+  ],
+  "data_sources": [],
+  "module_calls": [],
+  "required_providers": [
+    {
+      "local_name": "aws",
+      "source": "hashicorp/aws",
+      "version": "~> 6.0",
+      "location": {
+        "file": "envs/prod/versions.tf",
+        "start_line": 5,
+        "end_line": 8
+      }
+    }
+  ],
+  "problems": []
+}
