@@ -17,6 +17,10 @@ skills:
   - review-module
   - explain-plan
 model: sonnet
+color: purple
+effort: xhigh
+maxTurns: 25
+disallowedTools: Write, Edit, NotebookEdit
 ---
 
 <role>

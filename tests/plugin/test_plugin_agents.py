@@ -37,6 +37,24 @@ AGENT_SKILLS = {
     'terraform-advisor': ['review-module', 'explain-plan'],
     'terraform-edit-reviewer': ['review-module'],
 }
+AGENT_COLORS = {
+    'terraform-author': 'green',
+    'terraform-researcher': 'cyan',
+    'terraform-advisor': 'purple',
+    'terraform-edit-reviewer': 'yellow',
+}
+AGENT_EFFORT = {
+    'terraform-author': 'high',
+    'terraform-researcher': 'low',
+    'terraform-advisor': 'xhigh',
+    'terraform-edit-reviewer': 'medium',
+}
+AGENT_MAX_TURNS = {
+    'terraform-author': 40,
+    'terraform-researcher': 20,
+    'terraform-advisor': 25,
+    'terraform-edit-reviewer': 12,
+}
 IGNORED_PLUGIN_KEYS = (
     'hooks',
     'mcpServers',
@@ -46,6 +64,7 @@ IGNORED_PLUGIN_KEYS = (
     'user-invocable',
 )
 WRITE_TOOLS = frozenset({'Write', 'Edit'})
+DENIED_WRITE_TOOLS = ['Write', 'Edit', 'NotebookEdit']
 
 
 def agent_tools(frontmatter: Mapping[str, Any]) -> list[str]:
@@ -95,6 +114,15 @@ class TestPluginAgents:
         }
         assert writers == {'terraform-author'}
 
+    def test_read_only_agents_deny_every_write_tool(self, claude_plugin: PluginInventory) -> None:
+        frontmatters = claude_plugin.subagents.given_frontmatters()
+        denied = {
+            agent: [tool.strip() for tool in frontmatter['disallowedTools'].split(',')]
+            for agent, frontmatter in frontmatters.items()
+            if 'disallowedTools' in frontmatter
+        }
+        assert denied == dict.fromkeys(set(AGENT_MODELS) - {'terraform-author'}, DENIED_WRITE_TOOLS)
+
     @agent_cases()
     def test_agent_mcp_tools_are_terraform_harness_tools(
         self, claude_plugin: PluginInventory, agent: str
@@ -118,3 +146,39 @@ class TestPluginAgents:
         preloaded = frontmatter.get('skills', [])
         assert preloaded == AGENT_SKILLS[agent]
         assert set(preloaded) <= SKILLS
+
+
+@pytest.mark.unit
+class TestPluginAgentRuntime:
+    @agent_cases()
+    def test_agent_reasons_at_its_role_effort(
+        self, claude_plugin: PluginInventory, agent: str
+    ) -> None:
+        frontmatter = claude_plugin.subagents.given_frontmatters()[agent]
+        assert frontmatter['effort'] == AGENT_EFFORT[agent]
+
+    @agent_cases()
+    def test_agent_stops_at_its_turn_cap(self, claude_plugin: PluginInventory, agent: str) -> None:
+        frontmatter = claude_plugin.subagents.given_frontmatters()[agent]
+        assert frontmatter['maxTurns'] == AGENT_MAX_TURNS[agent]
+
+    @agent_cases()
+    def test_agent_shows_its_role_color(self, claude_plugin: PluginInventory, agent: str) -> None:
+        frontmatter = claude_plugin.subagents.given_frontmatters()[agent]
+        assert frontmatter['color'] == AGENT_COLORS[agent]
+
+    def test_only_terraform_researcher_runs_in_the_background(
+        self, claude_plugin: PluginInventory
+    ) -> None:
+        frontmatters = claude_plugin.subagents.given_frontmatters()
+        background = {
+            agent for agent, frontmatter in frontmatters.items() if frontmatter.get('background')
+        }
+        assert background == {'terraform-researcher'}
+
+    def test_only_prompt_scoped_agents_omit_claude_md(self, claude_plugin: PluginInventory) -> None:
+        frontmatters = claude_plugin.subagents.given_frontmatters()
+        omitted = {
+            agent for agent, frontmatter in frontmatters.items() if frontmatter.get('omitClaudeMd')
+        }
+        assert omitted == {'terraform-researcher', 'terraform-edit-reviewer'}
