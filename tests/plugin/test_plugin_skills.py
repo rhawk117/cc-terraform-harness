@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 TOOL_PREFIX = 'mcp__plugin_terraform-harness_terraform__'
 SKILL_TOOLS = {
     'check-module': 'diagnostics',
+    'create-module': 'describe',
     'explain-plan': 'plan_digest',
     'fix-review-findings': 'diagnostics',
     'review-module': 'describe',

@@ -1,0 +1,259 @@
+{
+  "type": "aws_nat_gateway",
+  "kind": "resource",
+  "block": "",
+  "provider": "registry.terraform.io/hashicorp/aws",
+  "version": "6.69.1",
+  "constraint": "~> 6.0",
+  "attributes": [
+    {
+      "name": "allocation_id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "association_id",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "auto_provision_zones",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "auto_scaling_ips",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "availability_mode",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "connectivity_type",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "network_interface_id",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "private_ip",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "public_ip",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "region",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": "Region where this resource will be [managed](https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints). Defaults to the Region set in the [provider configuration](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#aws-configuration-reference).",
+      "nested": null
+    },
+    {
+      "name": "regional_nat_gateway_address",
+      "type": "set(object({allocation_id = string, association_id = string, availability_zone = string, availability_zone_id = string, network_interface_id = string, public_ip = string, status = string}))",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "regional_nat_gateway_auto_mode",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "route_table_id",
+      "type": "string",
+      "required": false,
+      "optional": false,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "secondary_allocation_ids",
+      "type": "set(string)",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "secondary_private_ip_address_count",
+      "type": "number",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "secondary_private_ip_addresses",
+      "type": "set(string)",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "subnet_id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "tags",
+      "type": "map(string)",
+      "required": false,
+      "optional": true,
+      "computed": false,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "tags_all",
+      "type": "map(string)",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    },
+    {
+      "name": "vpc_id",
+      "type": "string",
+      "required": false,
+      "optional": true,
+      "computed": true,
+      "sensitive": false,
+      "deprecated": false,
+      "description": null,
+      "nested": null
+    }
+  ],
+  "blocks": [
+    {
+      "name": "availability_zone_address",
+      "nesting_mode": "set",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 3,
+      "block_count": 0
+    },
+    {
+      "name": "timeouts",
+      "nesting_mode": "single",
+      "min_items": null,
+      "max_items": null,
+      "attribute_count": 3,
+      "block_count": 0
+    }
+  ]
+}
