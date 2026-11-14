@@ -228,17 +228,6 @@ class ChangeImpactTool:
     async def change_impact(
         self, path: containment.ProjectPath, base_ref: str = 'HEAD'
     ) -> dict[str, Any]:
-        """Report what a git diff changed in Terraform and which root modules it reaches.
-
-        Give a directory inside the project and a base ref (default HEAD). Changes are the
-        working tree, staged and untracked .tf files under that directory against the merge base
-        of the ref and HEAD. Returns the changed blocks (added, modified or removed, a removed
-        block located at its base file and line), each changed module's variable and output
-        changes (added, removed, type or default changed, as expression text with whitespace
-        collapsed) and every root module in the whole project that reaches a changed module with
-        its shortest module call path. Reads only git and the files; no plan or state.
-        The path is relative to the project root or absolute inside it.
-        """
         directory = self.resolve_directory(path)
         result = await self.analyze(directory, base_ref)
         return self.budget.apply(asdict(result))

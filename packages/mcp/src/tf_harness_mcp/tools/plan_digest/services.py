@@ -171,17 +171,6 @@ class PlanDigestTool:
         return resolved, raw
 
     async def plan_digest(self, path: containment.ProjectPath) -> dict[str, Any]:
-        """Summarize one plan JSON document without changing anything.
-
-        Reads a plan rendered by `terraform show -json <planfile>` and returns the count of
-        resources per action (a replacement counts as replace), each changed resource with its
-        address and actions (replacements marked, no-op resources left out) and the output
-        changes, plus risk facts: per resource `forced_by` (attributes forcing a replacement),
-        `sensitive_attributes` (names only) and `flags`, and top level `moves`, `imports`,
-        `drifted` addresses and `plan_flags`. The path is relative to the project root or absolute
-        inside it.
-        A binary plan file or state JSON is refused; render it with `terraform show -json` first.
-        """
         resolved, raw = self.read_plan(path)
         return self.budget.apply(digest_plan(resolved, parse_plan(resolved, raw)))
 

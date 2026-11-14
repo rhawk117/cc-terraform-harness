@@ -8,14 +8,13 @@ import pytest
 from tf_harness_mcp.provider_schemas.services import SCHEMA_ARGV
 from tf_harness_mcp.runner.domain import CommandResult
 from tf_harness_mcp.runner.process import create_command_runner
-from tf_harness_mcp.server import create_server
 from tf_harness_mcp.settings import Settings
 from tf_harness_mcp.tools.tests.results import read_tool_text
 
 if TYPE_CHECKING:
     from _pytest.mark import ParameterSet
     from mcp import Client
-    from mcp.server.mcpserver import MCPServer
+    from tf_harness_mcp.runner.domain import CommandRunner
     from tf_harness_mcp.runner.tests.recording import RecordingCommandRunner
 
 FIXTURE = Path(__file__).parents[2].joinpath('provider_schemas', 'schema.json')
@@ -258,8 +257,8 @@ class TestProviderSchemaBudget:
 @pytest.mark.skipif(shutil.which('terraform') is None, reason='terraform is not on PATH')
 class TestProviderSchemaWithTerraform:
     @pytest.fixture
-    def server(self, settings: Settings) -> MCPServer:
-        return create_server(settings, create_command_runner())
+    def command_runner(self) -> CommandRunner:
+        return create_command_runner()
 
     async def test_uninitialized_module_reports_the_missing_provider(
         self, client: Client, module: Path, settings: Settings

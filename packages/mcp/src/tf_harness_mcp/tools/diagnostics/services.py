@@ -166,13 +166,6 @@ class DiagnosticsTool:
         return resolved
 
     async def diagnostics(self, directory: containment.ProjectPath) -> dict[str, Any]:
-        """Check one Terraform module directory without changing it.
-
-        Runs the terraform fmt check, terraform validate and tflint in the directory and returns
-        each check's status (passed, failed or skipped) with its findings, each carrying the file
-        and line when the tool reports one. A check whose binary is not on PATH is skipped with
-        the reason. The directory is relative to the project root or absolute inside it.
-        """
         resolved = self.resolve_directory(directory)
         reports = await self.service.run(resolved)
         checks = {name: asdict(report) for name, report in reports.items()}

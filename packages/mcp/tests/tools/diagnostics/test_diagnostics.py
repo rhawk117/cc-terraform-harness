@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 import anyio
 import pytest
 from tf_harness_mcp.runner.process import create_command_runner
-from tf_harness_mcp.server import create_server
 from tf_harness_mcp.settings import Settings
 from tf_harness_mcp.tools.diagnostics.tests.scripting import (
     FMT_ARGV,
@@ -26,7 +25,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from mcp import Client
-    from mcp.server.mcpserver import MCPServer
+    from tf_harness_mcp.runner.domain import CommandRunner
     from tf_harness_mcp.runner.tests.recording import RecordingCommandRunner
     from tf_harness_mcp.tools.diagnostics.tests.scripting import Report
 
@@ -248,8 +247,8 @@ class TestDiagnosticsWithTerraform:
     broken_module = 'resource   "terraform_data" "broken" {\n  input = var.undeclared\n}\n'
 
     @pytest.fixture
-    def server(self, settings: Settings) -> MCPServer:
-        return create_server(settings, create_command_runner())
+    def command_runner(self) -> CommandRunner:
+        return create_command_runner()
 
     @pytest.fixture
     def broken(self, module: Path) -> Path:
