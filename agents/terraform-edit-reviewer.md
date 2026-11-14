@@ -12,6 +12,11 @@ tools: Read, Grep, Glob, mcp__plugin_terraform-harness_terraform__diagnostics, m
 skills:
   - review-module
 model: haiku
+color: yellow
+effort: medium
+maxTurns: 12
+disallowedTools: Write, Edit, NotebookEdit
+omitClaudeMd: true
 ---
 
 <role>
