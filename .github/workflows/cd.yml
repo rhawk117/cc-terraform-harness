@@ -1,15 +1,15 @@
-name: Create Release
+name: Release
+permissions: {}
+
 on:
   workflow_dispatch:
     inputs:
       version-bump:
-        description: Semantic version bump or recover an existing release
-        type: choice
         options: [recover, patch, minor, major]
+        type: choice
         default: recover
         required: true
-
-permissions: {}
+        description: Semantic version bump or recover an existing release
 
 concurrency:
   group: release-${{ github.repository }}
@@ -26,7 +26,7 @@ env:
 
 jobs:
   release-guard:
-    name: Validate Release Context
+    name: 🛡️ Validate Release Context
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -43,17 +43,17 @@ jobs:
           fi
 
   continuous-integration:
-    name: Run CI Pipeline
+    name: 🔁 Run CI Pipeline
     needs: [release-guard]
     uses: ./.github/workflows/ci.yml
     permissions:
-      actions: read
       contents: read
+      actions: read
       pull-requests: write
       security-events: write
 
   prepare-release:
-    name: Prepare Release
+    name: 🚀 Prepare Release
     needs: [continuous-integration]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -71,7 +71,7 @@ jobs:
           persist-credentials: true
 
       - name: Install uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: ${{ vars.UV_VERSION }}
           cache-dependency-glob: uv.lock
@@ -79,23 +79,15 @@ jobs:
       - name: Sync Dependencies
         run: uv sync --all-groups --locked
 
-      - name: Prepare Release
-        id: prepare
+      - id: prepare
+        name: 🚀 Prepare Release
         run: bash ./.github/scripts/release.sh
 
-  create-release:
-    name: Publish GitHub Release
-    needs: [prepare-release]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-      RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
-    steps:
-      - name: Publish GitHub Release
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.prepare.outputs.tag }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             echo "::notice::Release already exists: ${RELEASE_TAG}"

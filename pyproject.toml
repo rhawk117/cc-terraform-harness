@@ -3,7 +3,7 @@ name = "tf-harness-plugin"
 version = "0.2.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [{ name = "rhawk117", email = "hawkinsry19@gmail.com" }]
+authors = [{ name = "rhawk117", email = "noplaceLike127dot0dot0dot1@proton.me" }]
 requires-python = ">=3.14"
 dependencies = []
 
@@ -15,7 +15,7 @@ build-backend = "uv_build"
 check = [
     "mdformat>=1.0.0",
     "mdformat-frontmatter>=2.1.2",
-    "pre-commit>=4.7.0",
+    "prek>=0.5.9",
     "ruff>=0.17.1",
     "shellcheck-py>=0.11.0.1",
     "shfmt-py>=4.2.0",
@@ -31,6 +31,7 @@ test = [
     "pytest-mock>=3.16.0",
     "pytest-randomly>=5.0.0",
     "pytest-xdist>=3.8.0",
+    "pyyaml>=6.0.3",
 ]
 dev = [{ include-group = "check" }, { include-group = "test" }]
 security = ["pysentry-rs>=0.5.0"]

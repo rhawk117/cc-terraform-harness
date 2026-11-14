@@ -1,0 +1,87 @@
+name: Execute Test Suite
+author: rhawk117
+description: |
+  Runs pytest under pytest-xdist with coverage, summarizes the run, and uploads the HTML coverage report
+
+inputs:
+  workers:
+    description: "pytest-xdist worker count, or auto"
+    required: false
+    default: "auto"
+
+  markers:
+    description: "Marker expression passed to -m, empty runs every test"
+    required: false
+    default: ""
+
+  pytest-args:
+    description: "Extra pytest arguments, one per line"
+    required: false
+    default: ""
+
+  random-seed:
+    description: "pytest-randomly seed, defaults to a fresh seed each run"
+    required: false
+    default: ""
+
+  artifact-name:
+    description: "Name of the uploaded HTML coverage artifact"
+    required: false
+    default: coverage-html-${{ github.job }}-${{ strategy.job-index }}
+
+  hypothesis-profile:
+    description: The Hypothesis profile to use
+    required: false
+    default: "ci"
+
+runs:
+  using: composite
+  steps:
+    - id: pytest
+      name: Run Pytest
+      shell: bash
+      env:
+        RESULTS_DIR: ${{ runner.temp }}/pytest-results
+        WORKERS: ${{ inputs.workers }}
+        MARKERS: ${{ inputs.markers }}
+        PYTEST_ARGS: ${{ inputs.pytest-args }}
+        RANDOM_SEED: ${{ inputs.random-seed }}
+        SCRIPT_PATH: ${{ github.action_path }}/pytest_ci.py
+        HYPOTHESIS_PROFILE: ${{ inputs.hypothesis-profile }}
+      run: |
+        uv run --no-sync python "$SCRIPT_PATH" resolve \
+          --results-dir "$RESULTS_DIR" \
+          --workers "$WORKERS" \
+          --markers "$MARKERS" \
+          --random-seed "$RANDOM_SEED" \
+          --pytest-args="$PYTEST_ARGS" \
+          > "$RUNNER_TEMP/pytest-arguments"
+
+        mapfile -d '' -t arguments < "$RUNNER_TEMP/pytest-arguments"
+
+        echo "::group::Executing Test Suite ($MARKERS)"
+        uv run --no-sync pytest "${arguments[@]}"
+        echo "::endgroup::"
+
+    - if: ${{ !cancelled() && steps.pytest.outputs.junit-report != '' }}
+      name: Summarize Test Run
+      shell: bash
+      env:
+        JUNIT_REPORT: ${{ steps.pytest.outputs.junit-report }}
+        RANDOM_SEED: ${{ steps.pytest.outputs.random-seed }}
+        WORKERS: ${{ inputs.workers }}
+        SCRIPT_PATH: ${{ github.action_path }}/pytest_ci.py
+      run: |
+        uv run --no-sync python "$SCRIPT_PATH" summarize \
+          --junit-report "$JUNIT_REPORT" \
+          --random-seed "$RANDOM_SEED" \
+          --workers "$WORKERS" \
+          >> "$GITHUB_STEP_SUMMARY"
+
+    - if: ${{ !cancelled() && steps.pytest.outputs.coverage-html != '' }}
+      name: Upload Coverage Report
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ steps.pytest.outputs.coverage-html }}
+        if-no-files-found: warn
